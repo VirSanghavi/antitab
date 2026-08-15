@@ -58,5 +58,7 @@ jobs:
       - name: Run under a policy that forbids blob workers
         run: node dev/test/run-csp.mjs
 
+      # Loading an extension needs a headed browser, and a runner has no
+      # display, so this one gets a virtual one. Installed by --with-deps above.
       - name: Run against every frame arrangement
-        run: node dev/test/run-frames.mjs
+        run: xvfb-run -a node dev/test/run-frames.mjs
