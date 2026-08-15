@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Antitab test harness</title>
+<style>
+  body { font: 14px ui-monospace, Menlo, monospace; margin: 24px; max-width: 720px; }
+  h1 { font-size: 16px; }
+  pre { background: #f4f5f6; padding: 12px; border-radius: 8px; white-space: pre-wrap; }
+  .big { font-size: 15px; font-weight: 700; padding: 8px 16px; }
+</style>
+</head>
+<body>
+<h1>Antitab test harness</h1>
+<p>Add <code>?antitab=1</code> to patch the page. Press start, switch to another tab for a few
+seconds, come back, then read <code>window.__testResults</code>.</p>
+
+<p><button id="start" class="big">Start test</button></p>
+<pre id="out">idle</pre>
+
+<!-- The real payload, loaded exactly as the extension would load it. -->
+<script>
+  if (new URLSearchParams(location.search).get('antitab') === '1') {
+    document.write('<script src="/src/main/antitab.js"><\/script>');
+  }
+</script>
+
+<script>
+(() => {
+  const results = {
+    antitab: new URLSearchParams(location.search).get('antitab') === '1',
+    visibilityChangeEvents: 0,
+    windowBlurEvents: 0,
+    hiddenSamples: new Set(),
+    visibilityStateSamples: new Set(),
+    hasFocusSamples: new Set(),
+    reallyHiddenSeen: false,
+    rafFramesWhileHidden: 0,
+    rafFramesTotal: 0,
+    pauseAttempts: 0,
+    playingWhileHidden: null,
+    endedPaused: null
+  };
+  window.__testResults = results;
+
+  // Read the truth through a getter the payload never touches: a fresh iframe's
+  // own Document.prototype.
+  const probe = document.createElement('iframe');
+  probe.style.display = 'none';
+  document.documentElement.appendChild(probe);
+  const realHiddenGetter =
+    Object.getOwnPropertyDescriptor(probe.contentWindow.Document.prototype, 'hidden').get;
+  const reallyHidden = () => realHiddenGetter.call(document) === true;
+
+  document.addEventListener('visibilitychange', () => { results.visibilityChangeEvents++; });
+  window.addEventListener('blur', () => { results.windowBlurEvents++; });
+
+  function sample() {
+    results.hiddenSamples.add(document.hidden);
+    results.visibilityStateSamples.add(document.visibilityState);
+    results.hasFocusSamples.add(document.hasFocus());
+    if (reallyHidden()) results.reallyHiddenSeen = true;
+  }
+
+  // A 1s looping tone, so the media element behaves like a real player.
+  function makeTone() {
+    const rate = 8000, seconds = 1, samples = rate * seconds;
+    const buffer = new ArrayBuffer(44 + samples);
+    const view = new DataView(buffer);
+    const ascii = (offset, text) => {
+      for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+    };
+    ascii(0, 'RIFF'); view.setUint32(4, 36 + samples, true); ascii(8, 'WAVE');
+    ascii(12, 'fmt '); view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+    view.setUint32(24, rate, true); view.setUint32(28, rate, true);
+    view.setUint16(32, 1, true); view.setUint16(34, 8, true);
+    ascii(36, 'data'); view.setUint32(40, samples, true);
+    for (let i = 0; i < samples; i++) {
+      view.setUint8(44 + i, 128 + Math.round(60 * Math.sin((i / rate) * 440 * 2 * Math.PI)));
+    }
+    return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+  }
+
+  const audio = new Audio(makeTone());
+  audio.loop = true;
+  audio.muted = true; // keeps autoplay policy out of the way
+  window.__audio = audio;
+
+  let stopped = false;
+
+  document.getElementById('start').addEventListener('click', async () => {
+    document.getElementById('out').textContent = 'running — switch to another tab now';
+    await audio.play().catch((error) => { results.playError = String(error); });
+
+    sample();
+
+    // rAF loop: Chrome normally stops calling this in a hidden tab.
+    (function frame() {
+      if (stopped) return;
+      results.rafFramesTotal++;
+      if (reallyHidden()) results.rafFramesWhileHidden++;
+      sample();
+      requestAnimationFrame(frame);
+    })();
+
+    // A villain: pauses playback on a timer, the way a player's watchdog would.
+    const villain = setInterval(() => {
+      if (stopped) return;
+      if (reallyHidden()) {
+        results.pauseAttempts++;
+        audio.pause();
+        // Give the resume a moment, then record whether it actually took.
+        setTimeout(() => {
+          if (!stopped && reallyHidden()) results.playingWhileHidden = !audio.paused;
+        }, 300);
+      }
+      sample();
+    }, 700);
+
+    setTimeout(() => {
+      stopped = true;
+      clearInterval(villain);
+      results.endedPaused = audio.paused;
+      results.hiddenSamples = Array.from(results.hiddenSamples);
+      results.visibilityStateSamples = Array.from(results.visibilityStateSamples);
+      results.hasFocusSamples = Array.from(results.hasFocusSamples);
+      results.done = true;
+      document.getElementById('out').textContent = JSON.stringify(results, null, 2);
+    }, 11000);
+  });
+})();
+</script>
+</body>
+</html>

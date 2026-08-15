@@ -1,0 +1,225 @@
+/* Antitab — options page. */
+
+body { background: var(--paper); }
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+  position: relative;
+}
+
+/* --- masthead ------------------------------------------------------------ */
+
+.masthead {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.mark--lg { width: 28px; height: 28px; margin-top: 2px; }
+.mark__tile { color: var(--ink); }
+.mark__play { color: var(--paper); }
+
+h1 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.masthead__sub {
+  margin: 6px 0 0;
+  max-width: 46ch;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* --- welcome note -------------------------------------------------------- */
+
+.note {
+  margin-top: 24px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  border-radius: 10px;
+  background: var(--accent-wash);
+}
+
+.note__title {
+  margin: 0 0 3px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.note__body {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* --- blocks -------------------------------------------------------------- */
+
+.block { margin-top: 36px; }
+
+.block__head { margin-bottom: 10px; }
+
+h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.block__sub {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.rows {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.rows .row {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  align-items: flex-start;
+}
+
+.rows .row:last-child { border-bottom: 0; }
+
+.rows .row .switch { margin-top: 2px; }
+
+.row--static { cursor: default; }
+
+.opt:hover .row__label { color: var(--accent); }
+
+.row__hint { max-width: 62ch; }
+
+.row__hint code {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--surface-sunken);
+}
+
+/* --- site rows ----------------------------------------------------------- */
+
+.site-row__host {
+  font-family: var(--mono);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.site-row__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* --- buttons ------------------------------------------------------------- */
+
+.button {
+  flex: none;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.button:hover {
+  border-color: var(--ink);
+  background: var(--surface-sunken);
+}
+
+.button--danger { color: var(--danger); }
+.button--danger:hover { border-color: var(--danger); background: transparent; }
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 1px 5px;
+  margin-right: 2px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface-sunken);
+}
+
+/* --- empty state --------------------------------------------------------- */
+
+.empty {
+  padding: 28px 20px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.empty__title { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+
+.empty__body {
+  margin: 0 auto;
+  max-width: 42ch;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* --- colophon ------------------------------------------------------------ */
+
+.colophon {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.colophon p {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.colophon__meta {
+  margin-top: 8px !important;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* --- toast --------------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12.5px;
+  box-shadow: 0 8px 26px rgba(16, 20, 26, 0.25);
+}
+
+/* --- narrow -------------------------------------------------------------- */
+
+@media (max-width: 520px) {
+  .page { padding: 32px 16px 48px; }
+  .masthead { gap: 12px; }
+  .rows .row { padding: 13px 14px; gap: 10px; }
+  .row--static { flex-wrap: wrap; }
+  .row--static .button { margin-top: 4px; }
+  .block { margin-top: 28px; }
+}

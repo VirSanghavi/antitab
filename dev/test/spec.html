@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Antitab spec</title>
+<style>
+  body { font: 13px/1.5 ui-monospace, Menlo, monospace; margin: 24px; max-width: 760px; }
+  li { margin-bottom: 2px; }
+  .pass { color: #16794c; }
+  .fail { color: #a3341f; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>Antitab spec</h1>
+<p>Every assertion that depends on the tab being hidden drives the real
+<code>Document.prototype.hidden</code> getter directly, because a headless browser
+never backgrounds a tab. The payload reads that getter and cannot tell the
+difference.</p>
+<p><button id="run">Run</button></p>
+<ul id="out"></ul>
+
+<script>
+  // Installed BEFORE the payload, so the payload captures this as the source of
+  // truth for "is the tab really hidden".
+  window.__simHidden = false;
+  Object.defineProperty(Document.prototype, 'hidden', {
+    configurable: true,
+    get() { return window.__simHidden === true; }
+  });
+  Object.defineProperty(Document.prototype, 'visibilityState', {
+    configurable: true,
+    get() { return window.__simHidden === true ? 'hidden' : 'visible'; }
+  });
+</script>
+<script src="/src/main/antitab.js"></script>
+
+<script>
+(() => {
+  const results = [];
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  function check(name, condition, detail) {
+    results.push({ name, pass: !!condition, detail: detail === undefined ? '' : String(detail) });
+  }
+
+  const hide = (on) => { window.__simHidden = on; };
+
+  async function run() {
+    const api = window.__antitab;
+    check('payload installed', !!api && api.state().installed);
+
+    // ---- 1. visibility is spoofed while genuinely hidden -------------------
+    hide(true);
+    check('document.hidden stays false', document.hidden === false, document.hidden);
+    check('visibilityState stays visible', document.visibilityState === 'visible', document.visibilityState);
+    check('hasFocus stays true', document.hasFocus() === true);
+    check('payload still sees the truth', api.state().trulyHidden === true);
+
+    // ---- 2. the page never hears about it ----------------------------------
+    let visibilityHeard = 0;
+    let windowBlurHeard = 0;
+    let elementBlurHeard = 0;
+    const onVis = () => { visibilityHeard++; };
+    const onWinBlur = () => { windowBlurHeard++; };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('blur', onWinBlur);
+
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('blur'));
+    await wait(20);
+    check('visibilitychange is swallowed', visibilityHeard === 0, visibilityHeard);
+    check('window blur is swallowed', windowBlurHeard === 0, windowBlurHeard);
+
+    // An element losing focus must still work — only window-level blur is ours.
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.addEventListener('blur', () => { elementBlurHeard++; });
+    input.dispatchEvent(new Event('blur'));
+    await wait(20);
+    check('element blur still reaches the page', elementBlurHeard === 1, elementBlurHeard);
+    input.remove();
+
+    // ---- 3. animation frames keep coming while hidden ----------------------
+    hide(true);
+    let frames = 0;
+    let running = true;
+    (function loop() { if (!running) return; frames++; requestAnimationFrame(loop); })();
+    await wait(500);
+    running = false;
+    check('rAF keeps firing while hidden', frames > 5, frames + ' frames in 500ms');
+    check('ticker is running', api.state().ticking === true);
+
+    // cancelAnimationFrame must still cancel a frame served by the shim.
+    let cancelled = 0;
+    const id = requestAnimationFrame(() => { cancelled++; });
+    cancelAnimationFrame(id);
+    await wait(120);
+    check('cancelAnimationFrame cancels a shimmed frame', cancelled === 0, cancelled);
+
+    // ---- 4. force resume ---------------------------------------------------
+    const audio = makeAudio();
+    document.body.appendChild(audio); // the ordinary case: a player in the page
+    await audio.play().catch(() => {});
+    check('audio is playing to begin with', !audio.paused);
+
+    hide(true);
+    audio.pause();
+    await wait(250);
+    check('a pause while hidden is undone', !audio.paused, 'paused=' + audio.paused);
+
+    // ...but only a few times, so it can never fight forever.
+    for (let i = 0; i < 4; i++) { audio.pause(); await wait(200); }
+    check('resume gives up after its limit', audio.paused === true, 'paused=' + audio.paused);
+
+    // A pause while the tab is visible is the user's, and must stick.
+    hide(false);
+    await wait(50);
+    await audio.play().catch(() => {});
+    audio.pause();
+    await wait(250);
+    check('a pause while visible is respected', audio.paused === true);
+    audio.remove();
+
+    // A player whose element was never added to the page (new Audio()) emits no
+    // event anything can hear, so the pause() wrapper has to catch it.
+    const detached = makeAudio();
+    await detached.play().catch(() => {});
+    hide(true);
+    detached.pause();
+    await wait(250);
+    check('a detached player is resumed too', !detached.paused, 'paused=' + detached.paused);
+    hide(false);
+    await wait(50);
+    detached.pause();
+
+    // ---- 5. turning it off restores the page exactly ------------------------
+    const nativeRaf = api.state();
+    api.apply({ active: false });
+    hide(true);
+    check('document.hidden is honest again', document.hidden === true, document.hidden);
+    check('visibilityState is honest again', document.visibilityState === 'hidden', document.visibilityState);
+    check('hasFocus is the browser’s again',
+      !Object.prototype.hasOwnProperty.call(document, 'hasFocus'));
+
+    visibilityHeard = 0;
+    document.dispatchEvent(new Event('visibilitychange'));
+    await wait(20);
+    check('events reach the page again', visibilityHeard === 1, visibilityHeard);
+    check('uninstalled cleanly', api.state().installed === false && api.state().ticking === false);
+
+    // ---- 6. and back on again ----------------------------------------------
+    api.apply({ active: true });
+    check('re-enables', document.hidden === false && api.state().installed === true);
+
+    document.removeEventListener('visibilitychange', onVis);
+    window.removeEventListener('blur', onWinBlur);
+    hide(false);
+    api.apply({ active: false });
+
+    report();
+  }
+
+  function makeAudio() {
+    const rate = 8000, samples = rate;
+    const buffer = new ArrayBuffer(44 + samples);
+    const view = new DataView(buffer);
+    const ascii = (offset, text) => {
+      for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+    };
+    ascii(0, 'RIFF'); view.setUint32(4, 36 + samples, true); ascii(8, 'WAVE');
+    ascii(12, 'fmt '); view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+    view.setUint32(24, rate, true); view.setUint32(28, rate, true);
+    view.setUint16(32, 1, true); view.setUint16(34, 8, true);
+    ascii(36, 'data'); view.setUint32(40, samples, true);
+    for (let i = 0; i < samples; i++) {
+      view.setUint8(44 + i, 128 + Math.round(60 * Math.sin((i / rate) * 440 * 2 * Math.PI)));
+    }
+    const audio = new Audio(URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' })));
+    audio.loop = true;
+    audio.muted = true;
+    return audio;
+  }
+
+  function report() {
+    const out = document.getElementById('out');
+    out.replaceChildren();
+    for (const result of results) {
+      const li = document.createElement('li');
+      li.className = result.pass ? 'pass' : 'fail';
+      li.textContent = `${result.pass ? 'PASS' : 'FAIL'}  ${result.name}${result.detail ? '  (' + result.detail + ')' : ''}`;
+      out.appendChild(li);
+    }
+    window.__spec = {
+      total: results.length,
+      failed: results.filter((r) => !r.pass).length,
+      results
+    };
+  }
+
+  document.getElementById('run').addEventListener('click', () => {
+    results.length = 0;
+    run().catch((error) => {
+      check('spec threw', false, error && error.message);
+      report();
+    });
+  });
+})();
+</script>
+</body>
+</html>

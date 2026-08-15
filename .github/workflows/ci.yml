@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Static checks
+        run: node dev/test/check-sources.mjs
+
+      - name: Rebuild the generated files
+        run: |
+          node dev/make-icons.mjs
+          node dev/build-bookmarklet.mjs
+
+      - name: The committed build must match the source
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::icons/, bookmarklet/ or docs/ is out of date."
+            echo "Run: node dev/make-icons.mjs && node dev/build-bookmarklet.mjs"
+            exit 1
+          fi
+
+      - name: Bookmarklet checks
+        run: node dev/test/bookmarklet-check.mjs
+
+  spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright and a browser
+        run: |
+          npm install --no-save playwright@1.49.0
+          npx playwright install --with-deps chromium
+
+      - name: Run the payload spec
+        run: node dev/test/run-spec.mjs

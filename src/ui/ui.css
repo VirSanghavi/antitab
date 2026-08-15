@@ -1,0 +1,205 @@
+/* Antitab — shared design tokens and controls (popup + options). */
+
+:root {
+  color-scheme: light dark;
+
+  --paper: #fcfcfd;
+  --surface: #ffffff;
+  --surface-sunken: #f4f5f6;
+  --ink: #16181c;
+  --muted: #5f656d;
+  --line: #e2e4e8;
+  --line-strong: #cfd3d9;
+  --accent: #16794c;
+  --accent-hover: #12633e;
+  --accent-wash: #e9f3ee;
+  --knob: #ffffff;
+  --track-off: #c3c8cf;
+  --danger: #a3341f;
+  --shadow: 0 1px 2px rgba(16, 20, 26, 0.06);
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121316;
+    --surface: #191b1f;
+    --surface-sunken: #1f2226;
+    --ink: #ecedef;
+    --muted: #9ba1a9;
+    --line: #292c31;
+    --line-strong: #383c43;
+    --accent: #35c98a;
+    --accent-hover: #4ad79b;
+    --accent-wash: #14291f;
+    --knob: #10131a;
+    --track-off: #3d424a;
+    --danger: #f08b73;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #121316;
+  --surface: #191b1f;
+  --surface-sunken: #1f2226;
+  --ink: #ecedef;
+  --muted: #9ba1a9;
+  --line: #292c31;
+  --line-strong: #383c43;
+  --accent: #35c98a;
+  --accent-hover: #4ad79b;
+  --accent-wash: #14291f;
+  --knob: #10131a;
+  --track-off: #3d424a;
+  --danger: #f08b73;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- brand mark ---------------------------------------------------------- */
+
+.mark {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: block;
+}
+
+.wordmark {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- switch -------------------------------------------------------------- */
+
+.switch {
+  --track-w: 34px;
+  --track-h: 20px;
+  --knob-size: 14px;
+  width: var(--track-w);
+  height: var(--track-h);
+  flex: none;
+  border-radius: 999px;
+  background: var(--track-off);
+  position: relative;
+  transition: background-color 160ms var(--ease);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: var(--knob-size);
+  height: var(--knob-size);
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: 0 1px 2px rgba(16, 20, 26, 0.28);
+  transition: transform 160ms var(--ease), width 120ms var(--ease);
+}
+
+.switch[aria-checked="true"] { background: var(--accent); }
+
+.switch[aria-checked="true"]::after {
+  transform: translateX(calc(var(--track-w) - var(--knob-size) - 6px));
+}
+
+.switch:active::after { width: calc(var(--knob-size) + 3px); }
+
+.switch[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.switch.switch--lg {
+  --track-w: 44px;
+  --track-h: 26px;
+  --knob-size: 20px;
+}
+
+/* --- rows ---------------------------------------------------------------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.row__text { min-width: 0; flex: 1; }
+
+.row__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.row__hint {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.row[aria-disabled="true"] .row__label,
+.row[aria-disabled="true"] .row__hint { opacity: 0.5; }
+
+/* --- status dot ---------------------------------------------------------- */
+
+.dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.dot--on { background: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

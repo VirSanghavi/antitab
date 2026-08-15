@@ -1,0 +1,19 @@
+{
+  "name": "antitab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Keep videos playing when you switch tabs. Chrome extension plus a no-install bookmarklet.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "icons": "node dev/make-icons.mjs",
+    "build": "node dev/make-icons.mjs && node dev/build-bookmarklet.mjs",
+    "preview": "node dev/preview/build.mjs",
+    "serve": "node dev/test/serve.mjs 8733",
+    "check": "node dev/test/check-sources.mjs && node dev/test/bookmarklet-check.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VirSanghavi/antitab.git"
+  }
+}

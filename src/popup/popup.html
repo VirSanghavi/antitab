@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Antitab</title>
+<link rel="stylesheet" href="../ui/ui.css">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div class="shell">
+
+  <header class="head">
+    <svg class="mark" viewBox="0 0 20 20" aria-hidden="true">
+      <rect width="20" height="20" rx="5" fill="currentColor" class="mark__tile"></rect>
+      <path d="M7.6 6.2 13.4 10l-5.8 3.8Z" fill="currentColor" class="mark__play"></path>
+    </svg>
+    <span class="wordmark">antitab</span>
+    <button id="master" class="switch" type="button" role="switch"
+            aria-checked="true" aria-label="Antitab turned on"
+            title="Turn Antitab on or off everywhere"></button>
+  </header>
+
+  <main id="body">
+
+    <section id="site-panel" class="panel" hidden>
+      <p class="host" id="host" title=""></p>
+
+      <button id="site-toggle" class="primary row" type="button" role="switch" aria-checked="false">
+        <span class="row__text">
+          <span class="row__label">Keep playing in the background</span>
+          <span class="row__hint" id="primary-hint">Off. This site can still pause itself.</span>
+        </span>
+        <span class="switch switch--lg" aria-hidden="true"></span>
+      </button>
+
+      <p class="status" id="status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text"></span>
+      </p>
+    </section>
+
+    <section id="blocked-panel" class="panel panel--quiet" hidden>
+      <p class="blocked__title" id="blocked-title">Nothing to do here</p>
+      <p class="blocked__body" id="blocked-body"></p>
+    </section>
+
+    <section class="options" id="options" aria-labelledby="options-label">
+      <p class="eyebrow" id="options-label">How it pretends</p>
+
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="blockEvents">
+        <span class="row__text">
+          <span class="row__label">Report the tab as visible</span>
+          <span class="row__hint">Hides tab switches from the page. The main trick.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="rafKeepAlive">
+        <span class="row__text">
+          <span class="row__label">Keep animation frames running</span>
+          <span class="row__hint">For players that stall when Chrome pauses rendering.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="forceResume">
+        <span class="row__text">
+          <span class="row__label">Press play if it pauses anyway</span>
+          <span class="row__hint">Up to 3 tries, only while the tab is really hidden.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span id="count" class="foot__count"></span>
+    <button id="manage" class="foot__link" type="button">All sites</button>
+  </footer>
+
+  <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
+</div>
+
+<script src="../shared/site.js"></script>
+<script src="../shared/config.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

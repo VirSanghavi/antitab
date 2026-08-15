@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Antitab: keep videos playing when you switch tabs</title>
+<meta name="description" content="A one-click bookmark that stops websites pausing your video when you leave the tab. No installing, works on locked-down school and work Chromebooks.">
+<meta property="og:title" content="Antitab">
+<meta property="og:description" content="Keep videos playing when you switch tabs. No install needed.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' rx='5' fill='%2316181c'/><path d='M7.6 6.2 13.4 10l-5.8 3.8Z' fill='%2335c98a'/></svg>">
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #fcfcfd;
+    --surface: #ffffff;
+    --sunken: #f4f5f6;
+    --ink: #16181c;
+    --muted: #5f656d;
+    --line: #e2e4e8;
+    --line-strong: #cfd3d9;
+    --accent: #16794c;
+    --accent-wash: #e9f3ee;
+    --shadow: 0 1px 2px rgba(16,20,26,.06);
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121316; --surface: #191b1f; --sunken: #1f2226;
+      --ink: #ecedef; --muted: #9ba1a9; --line: #292c31; --line-strong: #383c43;
+      --accent: #35c98a; --accent-wash: #14291f;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #121316; --surface: #191b1f; --sunken: #1f2226;
+    --ink: #ecedef; --muted: #9ba1a9; --line: #292c31; --line-strong: #383c43;
+    --accent: #35c98a; --accent-wash: #14291f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--font); font-size: 16px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 660px; margin: 0 auto; padding: 40px 20px 72px; }
+  a { color: var(--ink); text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+  a:hover { text-decoration-color: currentColor; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+  /* header */
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand svg { width: 22px; height: 22px; display: block; }
+  .brand span { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+  .brand em {
+    margin-left: auto; font-style: normal; font-family: var(--mono);
+    font-size: 11px; color: var(--muted);
+  }
+
+  h1 {
+    margin: 34px 0 0; font-size: clamp(28px, 6vw, 38px); line-height: 1.12;
+    letter-spacing: -0.025em; font-weight: 650; max-width: 16ch;
+  }
+  .lede { margin: 14px 0 0; max-width: 52ch; font-size: 17px; color: var(--muted); }
+
+  /* the drag target */
+  .install {
+    margin: 32px 0 0; padding: 24px; border: 1px solid var(--line);
+    border-radius: 14px; background: var(--surface); box-shadow: var(--shadow);
+  }
+  .install__step {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .grab {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 20px 12px 16px; border-radius: 10px;
+    background: var(--ink); color: var(--paper);
+    font-weight: 600; font-size: 15px; text-decoration: none;
+    cursor: grab; user-select: none;
+    box-shadow: 0 2px 10px rgba(16,20,26,.18);
+    transition: transform 140ms var(--ease), box-shadow 140ms var(--ease);
+  }
+  .grab:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(16,20,26,.22); }
+  .grab:active { cursor: grabbing; transform: translateY(0); }
+  .grab svg { width: 16px; height: 16px; flex: none; }
+  .install__hint { margin: 14px 0 0; font-size: 14px; color: var(--muted); max-width: 46ch; }
+
+  /* steps */
+  ol.steps { margin: 28px 0 0; padding: 0; list-style: none; counter-reset: step; }
+  ol.steps li {
+    counter-increment: step; position: relative; padding: 0 0 20px 40px;
+    border-left: 1px solid var(--line); margin-left: 12px;
+  }
+  ol.steps li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.steps li::before {
+    content: counter(step); position: absolute; left: -12px; top: 0;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--sunken); border: 1px solid var(--line);
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    display: grid; place-items: center; color: var(--muted);
+  }
+  ol.steps strong { display: block; font-weight: 600; }
+  ol.steps p { margin: 3px 0 0; color: var(--muted); font-size: 15px; }
+
+  /* sections */
+  section { margin-top: 44px; }
+  h2 { margin: 0 0 10px; font-size: 19px; letter-spacing: -0.01em; }
+  h3 { margin: 22px 0 4px; font-size: 15px; }
+  p { margin: 0 0 12px; }
+  p, li { max-width: 62ch; }
+  .muted { color: var(--muted); }
+
+  details {
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; background: var(--surface); margin-top: 12px;
+  }
+  details + details { margin-top: 8px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  summary::marker { color: var(--muted); }
+  details > *:last-child { margin-bottom: 0; }
+
+  .copy {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 10px;
+    padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 8px;
+    background: var(--surface); color: inherit; font: inherit; font-size: 14px;
+    font-weight: 500; cursor: pointer;
+    transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+  }
+  .copy:hover { border-color: var(--ink); background: var(--sunken); }
+
+  .callout {
+    border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+    background: var(--accent-wash); border-radius: 12px; padding: 16px 18px;
+  }
+  .callout h2 { margin-bottom: 6px; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  kbd {
+    font-family: var(--mono); font-size: 12px; padding: 1.5px 6px;
+    border: 1px solid var(--line-strong); border-bottom-width: 2px;
+    border-radius: 5px; background: var(--sunken); white-space: nowrap;
+  }
+  code { font-family: var(--mono); font-size: 13px; background: var(--sunken); padding: 1px 5px; border-radius: 4px; }
+
+  ul.plain { margin: 0; padding-left: 20px; }
+  ul.plain li { margin-bottom: 6px; }
+
+  footer {
+    margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--muted);
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  }
+  footer .spacer { flex: 1; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="brand">
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <rect width="20" height="20" rx="5" fill="currentColor"></rect>
+      <path d="M7.6 6.2 13.4 10l-5.8 3.8Z" fill="var(--paper)"></path>
+    </svg>
+    <span>antitab</span>
+    <em>v{{VERSION}} · free · open source</em>
+  </header>
+
+  <h1>Keep the video playing when you switch tabs.</h1>
+  <p class="lede">Some sites pause the moment you look away. Antitab quietly tells the page you are still there, so it keeps going. Nothing to install. It is just a bookmark.</p>
+
+  <div class="install">
+    <p class="install__step">Drag this to your bookmarks bar</p>
+    <a class="grab" href="{{HREF}}" onclick="return false" title="Drag me to the bookmarks bar">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <rect width="20" height="20" rx="5" fill="currentColor" opacity=".22"></rect>
+        <path d="M7.6 6.2 13.4 10l-5.8 3.8Z" fill="currentColor"></path>
+      </svg>
+      Antitab
+    </a>
+    <p class="install__hint">Do not click it here. <strong>Drag</strong> it up to the strip of bookmarks under the address bar. Cannot see that strip? Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd>.</p>
+  </div>
+
+  <ol class="steps">
+    <li>
+      <strong>Drag the black Antitab button to your bookmarks bar.</strong>
+      <p>You only ever do this once.</p>
+    </li>
+    <li>
+      <strong>Open the page with your video and press play.</strong>
+      <p>Any site: a lecture, a stream, a music player.</p>
+    </li>
+    <li>
+      <strong>Click the Antitab bookmark once.</strong>
+      <p>A small black bar says “Antitab on”. Now switch tabs all you like. Click it again to turn it off.</p>
+    </li>
+  </ol>
+
+  <section>
+    <h2>Not working yet?</h2>
+
+    <details>
+      <summary>I cannot drag things onto my bookmarks bar</summary>
+      <p>Copy the code instead, then make the bookmark by hand.</p>
+      <button class="copy" id="copy" type="button">Copy the Antitab code</button>
+      <h3>Then</h3>
+      <ol class="plain" style="padding-left:20px">
+        <li>Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>O</kbd> to open the bookmark manager.</li>
+        <li>Click the three dots in the top right, then <strong>Add new bookmark</strong>.</li>
+        <li>Name it <code>Antitab</code>, paste the copied code into the <strong>URL</strong> box, and save.</li>
+        <li>Drag it onto your bookmarks bar so it is easy to reach.</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>The video still pauses</summary>
+      <p>Two things usually explain it:</p>
+      <ul class="plain">
+        <li><strong>The video sits inside another site.</strong> A bookmark only reaches the page you are on, not a video embedded from somewhere else. Open the video on its own site and click Antitab there.</li>
+        <li><strong>You clicked Antitab before the page finished loading.</strong> Press play first, then click the bookmark.</li>
+      </ul>
+      <p class="muted">Antitab also cannot help where the pausing happens on the company's servers rather than in the page. Some exam and training platforms work that way on purpose.</p>
+    </details>
+
+    <details>
+      <summary>Clicking the bookmark does nothing at all</summary>
+      <p>A few pages block bookmarks like this one: bank sites, the Chrome Web Store and Chrome's own settings pages. There is nothing to be done there. On an ordinary site you should always see a small black confirmation bar at the bottom.</p>
+    </details>
+  </section>
+
+  <section class="callout">
+    <h2>On a school or work Chromebook?</h2>
+    <p>This bookmark is the version for you. Managed Chromebooks usually block installing extensions and turn off developer tools, and a bookmark needs neither, so it keeps working where the extension cannot be installed.</p>
+    <p class="muted" style="margin-bottom:0">If bookmarks are locked down too, your administrator has blocked this deliberately, and there is no way around that. Ask them.</p>
+  </section>
+
+  <section>
+    <h2>Prefer the proper extension?</h2>
+    <p>On a computer where you can install extensions, the extension version is better: it works automatically on every visit, with no clicking, and it survives page reloads. It is in the same repository.</p>
+    <p><a href="https://github.com/{{REPO}}#install-the-extension">Extension setup instructions →</a></p>
+  </section>
+
+  <section>
+    <h2>What it actually does</h2>
+    <p>Web pages can ask the browser “is my tab in front right now?”, and a lot of players use that to pause you. Antitab answers “yes, always”, hides the moment you switch away, keeps the page's animation running while it is in the background, and presses play again if a player pauses regardless.</p>
+    <p class="muted">It sends nothing anywhere. No accounts, no tracking, no network requests, no data collected. It is a few hundred lines of JavaScript that run only on the page you clicked it on, and you can <a href="https://github.com/{{REPO}}/blob/main/src/main/antitab.js">read every one of them</a>.</p>
+  </section>
+
+  <footer>
+    <span>MIT licensed</span>
+    <span>·</span>
+    <a href="https://github.com/{{REPO}}">Source on GitHub</a>
+    <span class="spacer"></span>
+    <span>v{{VERSION}}</span>
+  </footer>
+</div>
+
+<script>
+  document.getElementById('copy').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const code = document.querySelector('.grab').getAttribute('href');
+    try {
+      await navigator.clipboard.writeText(code);
+      button.textContent = 'Copied. Now make the bookmark';
+    } catch (_) {
+      // Clipboard blocked (it often is on managed devices): fall back to a
+      // selectable box so the code can still be copied by hand.
+      const box = document.createElement('textarea');
+      box.value = code;
+      box.rows = 4;
+      box.readOnly = true;
+      box.style.cssText = 'width:100%;margin-top:10px;font-family:var(--mono);font-size:11px;padding:8px;border-radius:8px;border:1px solid var(--line-strong);background:var(--sunken);color:inherit';
+      button.after(box);
+      box.select();
+      button.textContent = 'Select all of the box below and copy it';
+    }
+    setTimeout(() => { button.textContent = 'Copy the Antitab code'; }, 6000);
+  });
+</script>
+</body>
+</html>

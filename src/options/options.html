@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Antitab settings</title>
+<link rel="stylesheet" href="../ui/ui.css">
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <svg class="mark mark--lg" viewBox="0 0 20 20" aria-hidden="true">
+      <rect width="20" height="20" rx="5" fill="currentColor" class="mark__tile"></rect>
+      <path d="M7.6 6.2 13.4 10l-5.8 3.8Z" fill="currentColor" class="mark__play"></path>
+    </svg>
+    <div>
+      <h1>Antitab</h1>
+      <p class="masthead__sub">Sites you allow are told the tab is still in front, so their video and audio keep going while you are somewhere else.</p>
+    </div>
+  </header>
+
+  <section class="note" id="welcome" hidden>
+    <p class="note__title">One step to go</p>
+    <p class="note__body">Antitab starts with access to nothing. Open a site that pauses on you, click the Antitab icon in the toolbar, and switch it on there. It takes effect straight away, with no reload.</p>
+  </section>
+
+  <section class="block">
+    <div class="block__head">
+      <h2>How it pretends</h2>
+      <p class="block__sub">Applies to every site you switch on.</p>
+    </div>
+
+    <div class="rows">
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="blockEvents">
+        <span class="row__text">
+          <span class="row__label">Report the tab as visible</span>
+          <span class="row__hint">Holds <code>document.hidden</code> at false and swallows the visibility and blur events a page uses to notice you left. This is the trick that does the work; leave it on unless a site misbehaves.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="rafKeepAlive">
+        <span class="row__text">
+          <span class="row__label">Keep animation frames running</span>
+          <span class="row__hint">Chrome stops <code>requestAnimationFrame</code> in a hidden tab, which stalls players that draw their own frames. A worker-driven timer keeps those callbacks coming instead.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="forceResume">
+        <span class="row__text">
+          <span class="row__label">Press play if it pauses anyway</span>
+          <span class="row__hint">Some players pause through a path no trick can hide. This presses play again, at most three times in fifteen seconds, and only while the tab is genuinely hidden, so it never fights you.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block__head">
+      <h2>Sites</h2>
+      <p class="block__sub" id="sites-sub"></p>
+    </div>
+
+    <div class="rows" id="sites"></div>
+
+    <div class="empty" id="sites-empty" hidden>
+      <p class="empty__title">No sites yet</p>
+      <p class="empty__body">Open a site that pauses when you switch away, click the Antitab icon, and turn it on. It will show up here.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block__head">
+      <h2>Shortcut &amp; access</h2>
+    </div>
+    <div class="rows">
+      <div class="row row--static">
+        <span class="row__text">
+          <span class="row__label">Toggle the current site</span>
+          <span class="row__hint" id="shortcut-hint">Default <kbd id="shortcut">Alt</kbd><kbd>Shift</kbd><kbd>K</kbd>. Change it in Chrome’s shortcut settings.</span>
+        </span>
+        <button class="button" type="button" id="shortcuts">Edit shortcut</button>
+      </div>
+      <div class="row row--static">
+        <span class="row__text">
+          <span class="row__label">Revoke every site permission</span>
+          <span class="row__hint">Clears the list above and hands back all the site access you granted. Antitab keeps nothing.</span>
+        </span>
+        <button class="button button--danger" type="button" id="revoke">Revoke all</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <p>Antitab runs entirely on your machine. No accounts, no network requests, no data leaves the browser. The site list lives in local extension storage and nowhere else.</p>
+    <p class="colophon__meta"><span id="version"></span></p>
+  </footer>
+
+  <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
+</div>
+
+<script src="../shared/site.js"></script>
+<script src="../shared/config.js"></script>
+<script src="options.js"></script>
+</body>
+</html>
