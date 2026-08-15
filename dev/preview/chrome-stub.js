@@ -86,7 +86,16 @@
       onRemoved: { addListener() {} }
     },
     runtime: {
-      async sendMessage(message) { console.log('[stub] sendMessage', message); return { ok: true }; },
+      async sendMessage(message) {
+        console.log('[stub] sendMessage', message);
+        if (message && message.type === 'frames') {
+          // What CodePen looks like: the pen runs on a domain of its own.
+          return params.get('frames') === 'none'
+            ? { hosts: [], exact: false }
+            : { hosts: ['cdpn.io'], exact: true };
+        }
+        return { ok: true };
+      },
       getManifest: () => ({ version: '1.0.0' }),
       openOptionsPage() { console.log('[stub] openOptionsPage'); },
       getURL: (path) => path

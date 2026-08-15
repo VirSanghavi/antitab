@@ -132,6 +132,50 @@ async function disableSite(site, tabId) {
   await refreshBadge(tabId);
 }
 
+// ------------------------------------------------------------------- frames
+// A page often runs the interesting part inside a frame served by another
+// domain, and a site is only ever switched on one domain at a time.
+
+async function embeddedHosts(tabId) {
+  const canSeeFrames = await chrome.permissions
+    .contains({ permissions: ['webNavigation'] }).catch(() => false);
+
+  if (canSeeFrames && chrome.webNavigation) {
+    // The real, post-redirect URL of every frame. CodePen is the reason this
+    // matters: the iframe's src attribute says codepen.io and it redirects to
+    // cdpn.io, which nothing in the page is allowed to observe.
+    const frames = await chrome.webNavigation.getAllFrames({ tabId }).catch(() => null);
+    if (frames) {
+      const top = frames.find((frame) => frame.frameId === 0);
+      const topHost = top ? hostOf(top.url) : null;
+      const hosts = [];
+      for (const frame of frames) {
+        const host = hostOf(frame.url);
+        if (!host || host === topHost || hosts.includes(host)) continue;
+        hosts.push(host);
+      }
+      return { hosts: hosts.slice(0, 8), exact: true };
+    }
+  }
+
+  // Without that permission, the best available answer is the src attributes
+  // the top frame can read, which covers a plain embed but not a redirect.
+  const reply = await chrome.tabs
+    .sendMessage(tabId, { type: 'antitab-frames' }, { frameId: 0 })
+    .catch(() => null);
+  return { hosts: (reply && reply.hosts) || [], exact: false };
+}
+
+function hostOf(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed.hostname;
+  } catch (_) {
+    return null;
+  }
+}
+
 // --------------------------------------------------------------------- badge
 
 async function badgeStateForUrl(url) {
@@ -281,6 +325,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         await syncRegistrations();
         await refreshAllBadges();
         return sendResponse({ ok: true });
+      case 'frames':
+        return sendResponse(await embeddedHosts(message.tabId));
       default:
         return sendResponse({ ok: false });
     }

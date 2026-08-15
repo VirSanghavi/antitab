@@ -154,8 +154,13 @@ extension never invents a focus event nobody asked for.
 
 ### Where it cannot help
 
-- **Videos embedded from another site.** The bookmark only reaches the page you
-  clicked it on. The extension needs that other site switched on too.
+- **Anything running inside a frame from another domain.** A site is switched
+  on one domain at a time, and plenty of pages run the part you care about
+  somewhere else. CodePen is the clearest case: the address bar says
+  `codepen.io`, but a pen actually runs on `cdpn.io`, so switching on
+  `codepen.io` alone changes nothing. The popup notices and offers the missing
+  domain with one click. The bookmark cannot do this at all, since it only ever
+  reaches the page you clicked it on.
 - **Anything enforced on a server.** Some exam, training and time-tracking
   platforms report focus from their own backend on purpose. Nothing running in
   your browser changes that.
@@ -173,6 +178,13 @@ accounts, no analytics, no tracking, and nothing is collected. The extension
 ships with access to **no sites at all**: each site you switch on is a separate
 Chrome permission prompt, the list lives in local extension storage, and
 **Revoke all** in settings hands every one of them back.
+
+One permission is optional and never requested at install: `webNavigation`,
+which lists the addresses of the frames in the tab you are looking at. It is
+asked for only if you press **Check** on the "part of this page comes from
+another domain" prompt, because a frame that redirects elsewhere cannot be
+identified any other way. Decline it and everything else works exactly as
+before.
 
 ---
 

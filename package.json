@@ -11,7 +11,8 @@
     "preview": "node dev/preview/build.mjs",
     "serve": "node dev/test/serve.mjs 8733",
     "check": "node dev/test/check-sources.mjs && node dev/test/icon-check.mjs && node dev/test/bookmarklet-check.mjs",
-    "spec": "node dev/test/run-spec.mjs && node dev/test/run-detector.mjs"
+    "spec": "node dev/test/run-spec.mjs && node dev/test/run-detector.mjs && node dev/test/run-csp.mjs",
+    "spec:live": "node dev/test/run-extension.mjs"
   },
   "repository": {
     "type": "git",

@@ -5,6 +5,7 @@
   "description": "Makes a site believe its tab is still open, focused and in use, so nothing pauses, throttles or times out when you switch away.",
   "minimum_chrome_version": "111",
   "permissions": ["storage", "scripting", "activeTab"],
+  "optional_permissions": ["webNavigation"],
   "optional_host_permissions": ["*://*/*"],
   "background": {
     "service_worker": "src/background.js"

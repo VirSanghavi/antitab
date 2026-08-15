@@ -273,21 +273,44 @@
     'else{clearInterval(t);t=null}' +
     '};';
 
+  // A strict `worker-src` or `script-src` refuses blob: workers outright, and
+  // plenty of sites send one. Worth trying once per page, never worth trying
+  // twice: the refusal is a console error every time, and it will not change.
+  let workerRefused = false;
+
   function startTicker() {
     if (ticker) return;
-    try {
-      const url = URL.createObjectURL(new Blob([TICKER_SOURCE], { type: 'text/javascript' }));
-      const worker = new Worker(url);
-      URL.revokeObjectURL(url);
-      worker.onmessage = tick;
-      worker.postMessage('start');
-      ticker = { stop() { try { worker.terminate(); } catch (_) { /* ignore */ } } };
-    } catch (_) {
-      // Strict CSP can forbid blob: workers. A hidden tab clamps setInterval to
-      // about a second, which is coarse but still keeps things moving.
-      const handle = setIntervalReal(tick, 16);
-      ticker = { stop() { clearIntervalReal(handle); } };
+
+    if (!workerRefused) {
+      try {
+        const url = URL.createObjectURL(new Blob([TICKER_SOURCE], { type: 'text/javascript' }));
+        const worker = new Worker(url);
+        URL.revokeObjectURL(url);
+        worker.onmessage = tick;
+        worker.onerror = () => {
+          // Refused asynchronously: drop to the fallback rather than sit behind
+          // a ticker object that will never tick.
+          workerRefused = true;
+          if (ticker && ticker.viaWorker) {
+            stopTicker();
+            startTicker();
+          }
+        };
+        worker.postMessage('start');
+        ticker = {
+          viaWorker: true,
+          stop() { try { worker.terminate(); } catch (_) { /* ignore */ } }
+        };
+        return;
+      } catch (_) {
+        workerRefused = true;
+      }
     }
+
+    // A hidden tab clamps setInterval to about a second, which is coarse but
+    // still keeps things moving.
+    const handle = setIntervalReal(tick, 16);
+    ticker = { viaWorker: false, stop() { clearIntervalReal(handle); } };
   }
 
   function stopTicker() {

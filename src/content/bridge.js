@@ -56,5 +56,39 @@
     send(latest);
   });
 
+  /**
+   * Which other domains this page embeds. A site can only be switched on per
+   * domain, and plenty of pages run the interesting code inside a frame served
+   * from somewhere else: CodePen renders a pen from cdpn.io, and embedded
+   * players come from their own host. Switching on the address bar's domain
+   * does nothing for those, which looks exactly like Antitab not working.
+   *
+   * Reading the `src` attribute of a frame is plain DOM and needs no extra
+   * permission, so the popup can offer them without Antitab ever being able to
+   * see inside a frame it was not given access to.
+   */
+  function embeddedHosts() {
+    const hosts = new Set();
+    for (const frame of document.querySelectorAll('iframe, frame')) {
+      const src = frame.getAttribute('src');
+      if (!src) continue;
+      try {
+        const url = new URL(src, location.href);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') continue;
+        if (url.hostname === location.hostname) continue;
+        hosts.add(url.hostname);
+      } catch (_) { /* a relative or malformed src: nothing to offer */ }
+    }
+    return Array.from(hosts).slice(0, 8);
+  }
+
+  if (window === window.top) {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (!message || message.type !== 'antitab-frames') return undefined;
+      sendResponse({ hosts: embeddedHosts() });
+      return undefined;
+    });
+  }
+
   push();
 })();

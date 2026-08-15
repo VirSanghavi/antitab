@@ -184,19 +184,34 @@ const TICKER_SOURCE =
 'if(e.data==="start"){if(t)return;t=setInterval(function(){postMessage(0)},16)}' +
 'else{clearInterval(t);t=null}' +
 '};';
+let workerRefused = false;
 function startTicker() {
 if (ticker) return;
+if (!workerRefused) {
 try {
 const url = URL.createObjectURL(new Blob([TICKER_SOURCE], { type: 'text/javascript' }));
 const worker = new Worker(url);
 URL.revokeObjectURL(url);
 worker.onmessage = tick;
-worker.postMessage('start');
-ticker = { stop() { try { worker.terminate(); } catch (_) {  } } };
-} catch (_) {
-const handle = setIntervalReal(tick, 16);
-ticker = { stop() { clearIntervalReal(handle); } };
+worker.onerror = () => {
+workerRefused = true;
+if (ticker && ticker.viaWorker) {
+stopTicker();
+startTicker();
 }
+};
+worker.postMessage('start');
+ticker = {
+viaWorker: true,
+stop() { try { worker.terminate(); } catch (_) {  } }
+};
+return;
+} catch (_) {
+workerRefused = true;
+}
+}
+const handle = setIntervalReal(tick, 16);
+ticker = { viaWorker: false, stop() { clearIntervalReal(handle); } };
 }
 function stopTicker() {
 if (!ticker) return;

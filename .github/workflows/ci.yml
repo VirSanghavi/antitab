@@ -54,3 +54,6 @@ jobs:
 
       - name: Run against the classic tab detector
         run: node dev/test/run-detector.mjs
+
+      - name: Run under a policy that forbids blob workers
+        run: node dev/test/run-csp.mjs
