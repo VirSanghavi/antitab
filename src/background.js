@@ -60,6 +60,11 @@ async function syncRegistrations() {
       world: 'MAIN',
       runAt: 'document_start',
       allFrames: true,
+      // A frame written with srcdoc, or an about:blank one a script filled in,
+      // has no URL of its own to match against, so without this it is skipped
+      // entirely. Pages put the part that matters in exactly such a frame, so
+      // skipping them looks precisely like Antitab not working.
+      matchOriginAsFallback: true,
       persistAcrossSessions: true
     },
     {
@@ -69,25 +74,38 @@ async function syncRegistrations() {
       world: 'ISOLATED',
       runAt: 'document_start',
       allFrames: true,
+      matchOriginAsFallback: true,
       persistAcrossSessions: true
     }
   ];
 
-  try {
+  // matchOriginAsFallback needs Chrome 119. On anything older the call is
+  // rejected outright, so the same registration is retried without it rather
+  // than leaving the extension registered for nothing at all.
+  const withoutFallback = () => scripts.map(({ matchOriginAsFallback, ...rest }) => rest);
+
+  async function attempt(list) {
     if (existingIds.length) {
-      await chrome.scripting.updateContentScripts(
-        scripts.filter((script) => existingIds.includes(script.id))
-      );
-      const missing = scripts.filter((script) => !existingIds.includes(script.id));
+      const known = list.filter((script) => existingIds.includes(script.id));
+      if (known.length) await chrome.scripting.updateContentScripts(known);
+      const missing = list.filter((script) => !existingIds.includes(script.id));
       if (missing.length) await chrome.scripting.registerContentScripts(missing);
-    } else {
-      await chrome.scripting.registerContentScripts(scripts);
+      return;
     }
-  } catch (error) {
-    // Fall back to a clean re-register; an update can fail if a previous
-    // registration is half-present after a crash or an extension reload.
-    await chrome.scripting.unregisterContentScripts({ ids: existingIds }).catch(() => {});
-    await chrome.scripting.registerContentScripts(scripts).catch(() => {});
+    await chrome.scripting.registerContentScripts(list);
+  }
+
+  try {
+    await attempt(scripts);
+  } catch (_) {
+    try {
+      await attempt(withoutFallback());
+    } catch (__) {
+      // A registration left half-present by a crash or a reload: start clean.
+      await chrome.scripting.unregisterContentScripts({ ids: existingIds }).catch(() => {});
+      await chrome.scripting.registerContentScripts(scripts)
+        .catch(() => chrome.scripting.registerContentScripts(withoutFallback()).catch(() => {}));
+    }
   }
 }
 

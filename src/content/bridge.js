@@ -18,11 +18,36 @@
     }));
   };
 
+  /**
+   * The host this document should be judged by.
+   *
+   * A frame written with srcdoc, or an about:blank one a script filled in, has
+   * no host of its own: `location.hostname` is empty. It still belongs to
+   * whoever created it, which is why the browser let this script in at all, so
+   * the answer is the nearest ancestor that does have one. Without this the
+   * payload arrives in such a frame and then sits there switched off, which is
+   * indistinguishable from it never arriving.
+   */
+  function hostForMatching() {
+    if (location.hostname) return location.hostname;
+    let view = window;
+    for (let depth = 0; depth < 10; depth++) {
+      if (view.parent === view) break;
+      view = view.parent;
+      try {
+        if (view.location.hostname) return view.location.hostname;
+      } catch (_) {
+        break; // an ancestor from another site: nothing more to learn
+      }
+    }
+    return '';
+  }
+
   function resolve(config) {
     // The frame was injected because its URL matched an enabled site, but the
     // exact host can be a subdomain ("m.youtube.com" under "youtube.com"), so
     // match by coverage rather than by an exact key lookup.
-    const site = AntitabSite.matchEnabled(location.hostname, config.sites);
+    const site = AntitabSite.matchEnabled(hostForMatching(), config.sites);
     return {
       active: config.enabled && !!site,
       presence: config.options.presence,

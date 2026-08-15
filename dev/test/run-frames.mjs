@@ -1,24 +1,29 @@
 /**
- * The bookmarklet against every frame arrangement a page might use.
+ * Both surfaces against every frame arrangement a page might use.
  *
  *   npm install --no-save playwright
  *   node dev/test/run-frames.mjs
  *
- * A bookmarklet starts in one document. Whether it gets anywhere else depends
- * entirely on the shape of the page, so each shape is checked:
+ * A page is rarely one document, and how far Antitab gets depends entirely on
+ * the shape of it:
  *
  *   same origin      reachable
- *   srcdoc           reachable, it inherits the parent's origin
+ *   srcdoc           reachable, but only because it is asked for: it has no URL
+ *                    to match against, so a content script skips it by default
  *   nested           reachable, the walk has to recurse
  *   sandboxed        reachable while allow-same-origin is set
- *   added later      reachable, the observer picks it up
- *   another site     NOT reachable by anything, and reported rather than hidden
+ *   added later      reachable
+ *   another site     NOT reachable without being switched on in its own right
  *
  * Reachable means a `visibilitychange` listener registered in that frame before
  * Antitab existed never hears one, which is the thing that makes a page pause.
+ *
+ * The extension is given 127.0.0.1 and not localhost, so the cross-origin frame
+ * is genuinely beyond it and both surfaces are held to the same table.
  */
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -47,46 +52,28 @@ await new Promise((resolve, reject) => {
 const failures = [];
 const check = (name, condition, detail) => {
   if (!condition) failures.push(name);
-  console.log(`${condition ? 'PASS' : 'FAIL'}  ${name}${detail !== undefined ? '  (' + detail + ')' : ''}`);
+  console.log(`  ${condition ? 'PASS' : 'FAIL'}  ${name}${detail !== undefined ? '  (' + detail + ')' : ''}`);
 };
 
-const bookmarklet = decodeURIComponent(
-  readFileSync(join(ROOT, 'bookmarklet/antitab.txt'), 'utf8').trim().slice('javascript:'.length)
-);
+const SHAPES = [
+  ['same', 'a same-origin frame', true],
+  ['srcdoc', 'a srcdoc frame', true],
+  ['sandboxed', 'a sandboxed frame that kept its origin', true],
+  ['late', 'a frame added afterwards', true],
+  ['cross', 'a frame from another site', false]
+];
 
-const browser = await chromium.launch();
-
-try {
-  const page = await browser.newPage();
-  await page.addInitScript(`window.__crossOrigin = ${JSON.stringify(OTHER)};`);
-  await page.goto(`${HOME}/dev/test/frames.html`);
+/** Everything both surfaces must satisfy, once the page is set up. */
+async function assertShapes(page) {
+  await page.evaluate(() => window.addLateFrame());
   await page.waitForTimeout(1200);
 
-  // Click the bookmark, then add a frame afterwards to prove the observer works.
-  const toast = await page.evaluate((src) => {
-    new Function(src)();
-    return window.__antitabNotice || null;
-  }, bookmarklet);
-  check('the bookmarklet ran', !!toast && !!toast.message);
-
-  await page.evaluate(() => window.addLateFrame());
-  await page.waitForTimeout(900);
-
-  // Now make every frame hear a visibility change.
   for (const frame of page.frames()) {
     await frame.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))).catch(() => {});
   }
   await page.waitForTimeout(300);
 
-  const shapes = [
-    ['same', 'a same-origin frame', true],
-    ['srcdoc', 'a srcdoc frame', true],
-    ['sandboxed', 'a sandboxed frame that kept its origin', true],
-    ['late', 'a frame added after the click', true],
-    ['cross', 'a frame from another site', false]
-  ];
-
-  for (const [id, label, reachable] of shapes) {
+  for (const [id, label, reachable] of SHAPES) {
     const result = await page.evaluate((frameId) => {
       const frame = document.getElementById(frameId);
       if (!frame || !frame.contentWindow) return { missing: true };
@@ -101,14 +88,13 @@ try {
     }, id);
 
     if (reachable) {
-      check(`Antitab reaches ${label}`, result.payload === true, JSON.stringify(result));
+      check(`reaches ${label}`, result.payload === true, JSON.stringify(result));
       check(`${label} never hears the change`, result.heard === 0, JSON.stringify(result));
     } else {
       check(`${label} is correctly out of reach`, result.crossOrigin === true, JSON.stringify(result));
     }
   }
 
-  // The frame nested two levels down, inside the same-origin one.
   const nested = await page.evaluate(() => {
     const outer = document.getElementById('same').contentWindow;
     const inner = outer.document.getElementById('nested');
@@ -118,18 +104,105 @@ try {
       heard: inner.contentWindow.__seen ? inner.contentWindow.__seen.visibility : null
     };
   });
-  check('Antitab reaches a frame nested two levels down', nested.payload === true, JSON.stringify(nested));
+  check('reaches a frame nested two levels down', nested.payload === true, JSON.stringify(nested));
   check('the nested frame never hears the change', nested.heard === 0, JSON.stringify(nested));
+}
 
-  // And the human is told about the one it cannot reach.
-  check('the toast says a part of the page is out of reach',
-    !!toast && /another site/i.test(toast.message) && toast.unreachable === 1,
-    JSON.stringify(toast && toast.message.slice(0, 130)));
+// ------------------------------------------------------------- the bookmark
+async function runBookmarklet() {
+  console.log('\n=== the bookmark ===');
+  const bookmarklet = decodeURIComponent(
+    readFileSync(join(ROOT, 'bookmarklet/antitab.txt'), 'utf8').trim().slice('javascript:'.length)
+  );
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.addInitScript(`window.__crossOrigin = ${JSON.stringify(OTHER)};`);
+    await page.goto(`${HOME}/dev/test/frames.html`);
+    await page.waitForTimeout(1200);
+
+    const notice = await page.evaluate((src) => {
+      new Function(src)();
+      return window.__antitabNotice || null;
+    }, bookmarklet);
+    check('the bookmarklet ran', !!notice && !!notice.message);
+    check('it says a part of the page is out of reach',
+      !!notice && /another site/i.test(notice.message) && notice.unreachable === 1,
+      JSON.stringify(notice && notice.message.slice(0, 90)));
+
+    await assertShapes(page);
+  } finally {
+    await browser.close();
+  }
+}
+
+// ----------------------------------------------------------- the extension
+async function runExtension() {
+  console.log('\n=== the extension ===');
+  const build = mkdtempSync(join(tmpdir(), 'antitab-frames-'));
+  for (const entry of ['manifest.json', 'src', 'icons']) {
+    cpSync(join(ROOT, entry), join(build, entry), { recursive: true });
+  }
+  const manifest = JSON.parse(readFileSync(join(build, 'manifest.json'), 'utf8'));
+  manifest.host_permissions = ['*://127.0.0.1/*']; // deliberately not localhost
+  delete manifest.optional_host_permissions;
+  delete manifest.optional_permissions;
+  writeFileSync(join(build, 'manifest.json'), JSON.stringify(manifest, null, 2));
+
+  const profile = mkdtempSync(join(tmpdir(), 'antitab-frames-p-'));
+  const context = await chromium.launchPersistentContext(profile, {
+    headless: false,
+    args: [`--disable-extensions-except=${build}`, `--load-extension=${build}`]
+  });
+
+  try {
+    let [worker] = context.serviceWorkers();
+    if (!worker) worker = await context.waitForEvent('serviceworker', { timeout: 15000 });
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const ready = await worker
+        .evaluate(() => typeof chrome !== 'undefined' && !!(chrome.storage && chrome.storage.local))
+        .catch(() => false);
+      if (ready) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+
+    await worker.evaluate(async () => {
+      await chrome.storage.local.set({
+        antitab: {
+          enabled: true,
+          sites: { '127.0.0.1': { addedAt: Date.now() } },
+          options: { presence: true, keepAlive: true, fakeActivity: true, forceResume: true }
+        }
+      });
+    });
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const registered = await worker.evaluate(() =>
+      chrome.scripting.getRegisteredContentScripts()
+        .then((s) => s.map((x) => ({ id: x.id, fallback: x.matchOriginAsFallback }))));
+    check('registered to match a frame with no URL of its own',
+      registered.every((r) => r.fallback === true), JSON.stringify(registered));
+
+    const page = await context.newPage();
+    await page.addInitScript(`window.__crossOrigin = ${JSON.stringify(OTHER)};`);
+    await page.goto(`${HOME}/dev/test/frames.html`);
+    await page.waitForTimeout(2000);
+
+    await assertShapes(page);
+  } finally {
+    await context.close();
+    rmSync(build, { recursive: true, force: true });
+    rmSync(profile, { recursive: true, force: true });
+  }
+}
+
+try {
+  await runBookmarklet();
+  await runExtension();
 } catch (error) {
   console.error(error);
   failures.push(String(error && error.message).slice(0, 120));
 } finally {
-  await browser.close();
   server.kill();
 }
 

@@ -166,8 +166,16 @@ spreads as far as the browser allows, which is further than it sounds:
 | Added to the page after you clicked | yes, an observer catches it | yes |
 | **From another domain** | **no, and it tells you** | yes, once that domain is switched on too |
 
+Two things had to be asked for explicitly to make that table true, and both
+failed silently before. A frame with no URL of its own is skipped by a content
+script unless `matchOriginAsFallback` is set, so the extension never entered
+one. And such a frame has an empty `location.hostname`, so even once inside,
+Antitab compared "" against the enabled sites, decided this was not one of
+them, and sat there switched off. Arriving and doing nothing looks exactly like
+never arriving.
+
 `dev/test/run-frames.mjs` checks every row against a page built out of exactly
-those shapes.
+those shapes, for **both** surfaces.
 
 ### Where it cannot help
 
