@@ -25,8 +25,9 @@
     const site = AntitabSite.matchEnabled(location.hostname, config.sites);
     return {
       active: config.enabled && !!site,
-      blockEvents: config.options.blockEvents,
-      rafKeepAlive: config.options.rafKeepAlive,
+      presence: config.options.presence,
+      keepAlive: config.options.keepAlive,
+      fakeActivity: config.options.fakeActivity,
       forceResume: config.options.forceResume
     };
   }

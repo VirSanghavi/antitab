@@ -27,7 +27,7 @@
 
       <button id="site-toggle" class="primary row" type="button" role="switch" aria-checked="false">
         <span class="row__text">
-          <span class="row__label">Keep playing in the background</span>
+          <span class="row__label">Pretend I never left this tab</span>
           <span class="row__hint" id="primary-hint">Off. This site can still pause itself.</span>
         </span>
         <span class="switch switch--lg" aria-hidden="true"></span>
@@ -45,31 +45,40 @@
     </section>
 
     <section class="options" id="options" aria-labelledby="options-label">
-      <p class="eyebrow" id="options-label">How it pretends</p>
+      <p class="eyebrow" id="options-label">What it pretends</p>
 
-      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="blockEvents">
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="presence">
         <span class="row__text">
-          <span class="row__label">Report the tab as visible</span>
+          <span class="row__label">Report the tab as open and focused</span>
           <span class="row__hint">Hides tab switches from the page. The main trick.</span>
         </span>
         <span class="switch" aria-hidden="true"></span>
       </button>
 
-      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="rafKeepAlive">
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="keepAlive">
         <span class="row__text">
-          <span class="row__label">Keep animation frames running</span>
-          <span class="row__hint">For players that stall when Chrome pauses rendering.</span>
+          <span class="row__label">Keep timers and animation running</span>
+          <span class="row__hint">Chrome throttles both in the background. This undoes that.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="fakeActivity">
+        <span class="row__text">
+          <span class="row__label">Look like you are still using it</span>
+          <span class="row__hint">Beats idle timers and session timeouts. Only while hidden.</span>
         </span>
         <span class="switch" aria-hidden="true"></span>
       </button>
 
       <button class="row opt" type="button" role="switch" aria-checked="true" data-option="forceResume">
         <span class="row__text">
-          <span class="row__label">Press play if it pauses anyway</span>
+          <span class="row__label">Press play if a video pauses</span>
           <span class="row__hint">Up to 3 tries, only while the tab is really hidden.</span>
         </span>
         <span class="switch" aria-hidden="true"></span>
       </button>
+
     </section>
 
   </main>

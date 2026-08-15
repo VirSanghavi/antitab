@@ -99,7 +99,7 @@
       const live = siteOn && master;
       el.statusDot.classList.toggle('dot--on', live);
       el.statusText.textContent = live
-        ? 'This tab looks like it is in front, even when it is not.'
+        ? 'This tab looks open, focused and in use, even when it is not.'
         : siteOn
           ? 'Paused by the switch up top.'
           : 'Switch on, then leave the tab. No reload needed.';

@@ -133,6 +133,65 @@ difference.</p>
     await wait(50);
     detached.pause();
 
+    // ---- 4b. timers are not throttled while hidden -------------------------
+    hide(true);
+    let intervalTicks = 0;
+    const handle = setInterval(() => { intervalTicks++; }, 50);
+    let timeoutFired = false;
+    setTimeout(() => { timeoutFired = true; }, 60);
+    let cancelledTimeout = false;
+    const doomed = setTimeout(() => { cancelledTimeout = true; }, 60);
+    clearTimeout(doomed);
+    await wait(400);
+    clearInterval(handle);
+    check('setInterval keeps its real rate while hidden', intervalTicks >= 4, intervalTicks + ' ticks in 400ms');
+    check('setTimeout still fires while hidden', timeoutFired);
+    check('clearTimeout still cancels', cancelledTimeout === false);
+
+    intervalTicks = 0;
+    await wait(150);
+    check('clearInterval really stopped it', intervalTicks === 0, intervalTicks);
+
+    // A timer set while visible must survive the switch to hidden at its own
+    // pace, which is the case that matters for a poll started at page load.
+    hide(false);
+    await wait(20);
+    let migrated = false;
+    setTimeout(() => { migrated = true; }, 250);
+    hide(true);
+    await wait(400);
+    check('a timer set while visible still fires on time', migrated);
+
+    // ---- 4c. presence beyond visibility ------------------------------------
+    hide(true);
+    if ('userActivation' in navigator) {
+      check('userActivation reports active', navigator.userActivation.isActive === true);
+    } else {
+      check('userActivation is not in this browser (skipped)', true);
+    }
+
+    // ---- 4d. synthesised activity ------------------------------------------
+    let moves = 0;
+    const onMove = () => { moves++; };
+    document.addEventListener('mousemove', onMove);
+    hide(true);
+    // Cycle the switch so the nudge that fires on start is inside this window;
+    // otherwise it happened when the tab first went hidden, 30s ago.
+    api.apply({ active: true, fakeActivity: false });
+    api.apply({ active: true, fakeActivity: true });
+    await wait(120);
+    check('activity is synthesised while hidden', moves > 0, moves + ' events');
+    check('the payload knows it is faking', api.state().faking === true);
+
+    moves = 0;
+    hide(false);
+    api.apply({ active: true, fakeActivity: true });
+    await wait(120);
+    check('nothing is synthesised while visible', moves === 0, moves + ' events');
+    check('faking stops when you come back', api.state().faking === false);
+    document.removeEventListener('mousemove', onMove);
+    hide(true);
+
     // ---- 5. turning it off restores the page exactly ------------------------
     const nativeRaf = api.state();
     api.apply({ active: false });
@@ -147,6 +206,13 @@ difference.</p>
     await wait(20);
     check('events reach the page again', visibilityHeard === 1, visibilityHeard);
     check('uninstalled cleanly', api.state().installed === false && api.state().ticking === false);
+    check('setTimeout is the browser\u2019s again', !String(window.setTimeout).includes('Shim'));
+    check('faking stopped on uninstall', api.state().faking === false);
+
+    let afterTeardown = false;
+    setTimeout(() => { afterTeardown = true; }, 20);
+    await wait(120);
+    check('timers still work after uninstall', afterTeardown);
 
     // ---- 6. and back on again ----------------------------------------------
     api.apply({ active: true });

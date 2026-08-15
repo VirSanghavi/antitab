@@ -22,11 +22,11 @@
 
   // First click turns it on; every click after that flips it.
   const on = wasInstalled ? !api.state().config.active : true;
-  api.apply({ active: on, blockEvents: true, rafKeepAlive: true, forceResume: true });
+  api.apply({ active: on, presence: true, keepAlive: true, fakeActivity: true, forceResume: true });
 
   notify(on, on
-    ? 'Antitab is on. This tab keeps playing'
-    : 'Antitab is off. This tab can pause again');
+    ? 'Antitab is on. This tab looks open and in use'
+    : 'Antitab is off. This tab looks idle again');
 
   function notify(active, message) {
     const ID = 'antitab-toast-host';

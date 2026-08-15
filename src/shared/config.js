@@ -21,11 +21,20 @@
     enabled: true,
     sites: {},
     options: Object.freeze({
-      blockEvents: true,
-      rafKeepAlive: true,
+      presence: true,
+      keepAlive: true,
+      fakeActivity: true,
       forceResume: true
     })
   });
+
+  /** An option is on unless it was explicitly stored as false. */
+  function pick(options, name, legacyName) {
+    if (!options) return true;
+    if (typeof options[name] === 'boolean') return options[name];
+    if (legacyName && typeof options[legacyName] === 'boolean') return options[legacyName];
+    return true;
+  }
 
   function normalize(stored) {
     const raw = stored && typeof stored === 'object' ? stored : {};
@@ -40,9 +49,12 @@
       enabled: raw.enabled !== false,
       sites,
       options: {
-        blockEvents: raw.options ? raw.options.blockEvents !== false : true,
-        rafKeepAlive: raw.options ? raw.options.rafKeepAlive !== false : true,
-        forceResume: raw.options ? raw.options.forceResume !== false : true
+        // The 1.0 names are read as a fallback so an existing profile keeps
+        // whatever the user had chosen.
+        presence: pick(raw.options, 'presence', 'blockEvents'),
+        keepAlive: pick(raw.options, 'keepAlive', 'rafKeepAlive'),
+        fakeActivity: pick(raw.options, 'fakeActivity'),
+        forceResume: pick(raw.options, 'forceResume')
       }
     };
   }

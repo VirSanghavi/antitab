@@ -17,7 +17,7 @@
     </svg>
     <div>
       <h1>Antitab</h1>
-      <p class="masthead__sub">Sites you allow are told the tab is still in front, so their video and audio keep going while you are somewhere else.</p>
+      <p class="masthead__sub">Sites you allow are told their tab is still open, focused and in use, so nothing pauses, throttles or times out while you are somewhere else.</p>
     </div>
   </header>
 
@@ -28,34 +28,43 @@
 
   <section class="block">
     <div class="block__head">
-      <h2>How it pretends</h2>
+      <h2>What it pretends</h2>
       <p class="block__sub">Applies to every site you switch on.</p>
     </div>
 
     <div class="rows">
-      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="blockEvents">
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="presence">
         <span class="row__text">
-          <span class="row__label">Report the tab as visible</span>
-          <span class="row__hint">Holds <code>document.hidden</code> at false and swallows the visibility and blur events a page uses to notice you left. This is the trick that does the work; leave it on unless a site misbehaves.</span>
+          <span class="row__label">Report the tab as open and focused</span>
+          <span class="row__hint">Holds <code>document.hidden</code> at false, <code>hasFocus()</code> at true and <code>navigator.userActivation</code> at active, then swallows the visibility, blur and freeze events a page uses to notice you left. This is the trick that does most of the work; leave it on unless a site misbehaves.</span>
         </span>
         <span class="switch" aria-hidden="true"></span>
       </button>
 
-      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="rafKeepAlive">
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="keepAlive">
         <span class="row__text">
-          <span class="row__label">Keep animation frames running</span>
-          <span class="row__hint">Chrome stops <code>requestAnimationFrame</code> in a hidden tab, which stalls players that draw their own frames. A worker-driven timer keeps those callbacks coming instead.</span>
+          <span class="row__label">Keep timers and animation running</span>
+          <span class="row__hint">A background tab gets <code>requestAnimationFrame</code> stopped outright and <code>setTimeout</code> clamped to once a second, then once a minute. Both are served from a worker-driven timer instead, and timers already pending when you switch away are moved across, so a poll set at page load keeps its real interval.</span>
+        </span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+
+      <button class="row opt" type="button" role="switch" aria-checked="true" data-option="fakeActivity">
+        <span class="row__text">
+          <span class="row__label">Look like you are still using it</span>
+          <span class="row__hint">Idle timers, session timeouts and "are you still there?" prompts watch for input rather than for focus. A small pointer movement is synthesised every 30 seconds, only ever while the tab is genuinely hidden, so it can never land on top of something you are doing.</span>
         </span>
         <span class="switch" aria-hidden="true"></span>
       </button>
 
       <button class="row opt" type="button" role="switch" aria-checked="true" data-option="forceResume">
         <span class="row__text">
-          <span class="row__label">Press play if it pauses anyway</span>
+          <span class="row__label">Press play if a video pauses</span>
           <span class="row__hint">Some players pause through a path no trick can hide. This presses play again, at most three times in fifteen seconds, and only while the tab is genuinely hidden, so it never fights you.</span>
         </span>
         <span class="switch" aria-hidden="true"></span>
       </button>
+
     </div>
   </section>
 

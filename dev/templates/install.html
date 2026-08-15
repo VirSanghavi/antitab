@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Antitab: keep videos playing when you switch tabs</title>
-<meta name="description" content="A one-click bookmark that stops websites pausing your video when you leave the tab. No installing, works on locked-down school and work Chromebooks.">
+<title>Antitab: make a site think you never left the tab</title>
+<meta name="description" content="A one-click bookmark that makes a site think you never left the tab, so nothing pauses, throttles or times out. No installing, works on locked-down school and work Chromebooks.">
 <meta property="og:title" content="Antitab">
-<meta property="og:description" content="Keep videos playing when you switch tabs. No install needed.">
+<meta property="og:description" content="Make a site think you never left the tab. No install needed.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' rx='5' fill='%2316181c'/><path d='M7.6 6.2 13.4 10l-5.8 3.8Z' fill='%2335c98a'/></svg>">
 <style>
   :root {
@@ -172,8 +172,8 @@
     <em>v{{VERSION}} · free · open source</em>
   </header>
 
-  <h1>Keep the video playing when you switch tabs.</h1>
-  <p class="lede">Some sites pause the moment you look away. Antitab quietly tells the page you are still there, so it keeps going. Nothing to install. It is just a bookmark.</p>
+  <h1>Make a site think you never left the tab.</h1>
+  <p class="lede">Switch away and a page is told about it: the video pauses, timers slow to a crawl, idle countdowns start, sessions expire. Antitab quietly tells the page you are still right there. Nothing to install. It is just a bookmark.</p>
 
   <div class="install">
     <p class="install__step">Drag this to your bookmarks bar</p>
@@ -193,12 +193,12 @@
       <p>You only ever do this once.</p>
     </li>
     <li>
-      <strong>Open the page with your video and press play.</strong>
-      <p>Any site: a lecture, a stream, a music player.</p>
+      <strong>Open the page you want left alone.</strong>
+      <p>A lecture, a stream, a music player, a dashboard that logs you out.</p>
     </li>
     <li>
       <strong>Click the Antitab bookmark once.</strong>
-      <p>A small black bar says “Antitab on”. Now switch tabs all you like. Click it again to turn it off.</p>
+      <p>A small black bar confirms it. Now switch tabs all you like. Click it again to turn it off.</p>
     </li>
   </ol>
 
@@ -222,7 +222,7 @@
       <summary>The video still pauses</summary>
       <p>Two things usually explain it:</p>
       <ul class="plain">
-        <li><strong>The video sits inside another site.</strong> A bookmark only reaches the page you are on, not a video embedded from somewhere else. Open the video on its own site and click Antitab there.</li>
+        <li><strong>The thing sits inside another site.</strong> A bookmark only reaches the page you are on, not a video embedded from somewhere else. Open the video on its own site and click Antitab there.</li>
         <li><strong>You clicked Antitab before the page finished loading.</strong> Press play first, then click the bookmark.</li>
       </ul>
       <p class="muted">Antitab also cannot help where the pausing happens on the company's servers rather than in the page. Some exam and training platforms work that way on purpose.</p>
@@ -248,7 +248,7 @@
 
   <section>
     <h2>What it actually does</h2>
-    <p>Web pages can ask the browser “is my tab in front right now?”, and a lot of players use that to pause you. Antitab answers “yes, always”, hides the moment you switch away, keeps the page's animation running while it is in the background, and presses play again if a player pauses regardless.</p>
+    <p>Web pages can ask the browser “is my tab in front right now?”, and Chrome volunteers plenty more besides. Antitab answers “yes, always”: it hides the moment you switch away, keeps the page's timers and animation running at full speed instead of being throttled, synthesises a little pointer movement so idle countdowns never start, and presses play again if a video pauses regardless.</p>
     <p class="muted">It sends nothing anywhere. No accounts, no tracking, no network requests, no data collected. It is a few hundred lines of JavaScript that run only on the page you clicked it on, and you can <a href="https://github.com/{{REPO}}/blob/main/src/main/antitab.js">read every one of them</a>.</p>
   </section>
 

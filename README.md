@@ -4,10 +4,11 @@
 
 # Antitab
 
-**Keep videos playing when you switch tabs.**
+**Make a site think you never left the tab.**
 
-Some sites pause the moment you look away. Antitab tells the page you are still
-there, so it keeps going.
+Switch away and a page is told about it: video pauses, timers are throttled,
+idle countdowns start, sessions expire. Antitab tells the page you are still
+right there, so none of that happens.
 
 [**Install without an extension →**](https://virsanghavi.github.io/antitab/)
 &nbsp;·&nbsp;
@@ -25,7 +26,7 @@ there, so it keeps going.
 | --------------------- | --------------------------------------- | --------------------------------------- |
 | Anything to install   | No                                      | Yes, a folder you download              |
 | Works on a locked-down school or work Chromebook | **Yes**      | Usually not, extensions are blocked      |
-| Effort per video      | One click                               | None, it just works                      |
+| Effort per page       | One click                               | None, it just works                      |
 | Survives a page reload| No, click it again                      | Yes                                      |
 | Reaches videos embedded from another site | No                  | Yes                                      |
 
@@ -107,31 +108,33 @@ can change that in `chrome://extensions/shortcuts`.
 
 ## How it works
 
-A web page can ask the browser whether its tab is in front, and a lot of players
-use the answer to pause you. Antitab lies about it, in four ways you can switch
-on and off independently:
+Chrome tells a page four separate things when you switch away, and each one gets
+its own switch:
 
 | Switch | What it does |
 | ------ | ------------ |
-| **Report the tab as visible** | `document.hidden` stays `false` and `document.visibilityState` stays `"visible"`, forever. This is the one that does most of the work. |
-| (same switch) | `visibilitychange`, `webkitvisibilitychange`, window `blur` and `freeze` events are caught in the capture phase on `window` and stopped before any page code hears them. Element-level `blur` is untouched, so forms and focus still behave. |
-| **Keep animation frames running** | Chrome stops `requestAnimationFrame` in a hidden tab, which stalls players that draw their own frames. Antitab serves those callbacks from a `Worker` timer instead, because worker timers are not throttled the way a hidden tab's `setTimeout` is. |
-| **Press play if it pauses anyway** | Some players pause through a path no lie can hide. Antitab presses play again, at most 3 times in 15 seconds per element, and only while the tab is genuinely hidden, so it can never fight you or loop forever. |
+| **Report the tab as open and focused** | `document.hidden` stays `false`, `visibilityState` stays `"visible"`, `hasFocus()` stays `true`, and `navigator.userActivation` keeps reporting an active gesture. `visibilitychange`, `webkitvisibilitychange`, window `blur` and `freeze` are caught in the capture phase on `window` and stopped before any page code hears them. Element-level `blur` is untouched, so forms and focus still behave. |
+| **Keep timers and animation running** | A background tab has `requestAnimationFrame` stopped outright and `setTimeout` clamped to once a second, then once a minute after five. Antitab serves both from a `Worker` timer, which Chrome does not throttle. Timers already pending when you switch away are migrated across, so a poll started at page load keeps its real interval. |
+| **Look like you are still using it** | Idle timers, session timeouts and "are you still there?" prompts watch for input, not for focus. A single pointer movement is synthesised every 30 seconds, only ever while the tab is genuinely hidden. |
+| **Press play if a video pauses** | Some players pause through a path no lie can hide. Antitab presses play again, at most 3 times in 15 seconds per element, and only while the tab is genuinely hidden, so it can never fight you or loop forever. |
 
 It reads the true visibility from the untouched `Document.prototype` getter it
 captured before shadowing it, so it always knows the difference between a real
 pause and one it caused.
 
 Turning Antitab off restores everything exactly: the shadowing properties are
-deleted, the listeners removed, and `requestAnimationFrame` and
-`HTMLMediaElement.prototype.pause` are put back as they were.
+deleted, the listeners removed, and `requestAnimationFrame`, `setTimeout`,
+`setInterval`, `requestIdleCallback` and `HTMLMediaElement.prototype.pause` are
+put back as they were. Timers still pending are handed to the browser rather
+than dropped.
 
 ### Where it cannot help
 
 - **Videos embedded from another site.** The bookmark only reaches the page you
   clicked it on. The extension needs that other site switched on too.
-- **Pausing enforced on a server.** Some exam and training platforms track
-  focus server-side on purpose. Nothing running in your browser changes that.
+- **Anything enforced on a server.** Some exam, training and time-tracking
+  platforms report focus from their own backend on purpose. Nothing running in
+  your browser changes that.
 - **Chrome's own pages,** the Web Store, and `file://` pages. Chrome blocks all
   extensions there, including this one.
 - **Timers, when a page is fully frozen.** Chrome can freeze a long-idle
