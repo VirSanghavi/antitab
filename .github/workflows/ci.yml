@@ -51,3 +51,6 @@ jobs:
 
       - name: Run the payload spec
         run: node dev/test/run-spec.mjs
+
+      - name: Run against the classic tab detector
+        run: node dev/test/run-detector.mjs

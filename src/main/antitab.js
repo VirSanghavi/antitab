@@ -200,10 +200,41 @@
   // only swallowed when window itself is the target.
   const WINDOW_EVENTS = ['blur'];
 
+  /**
+   * A `visibilitychange` is dispatched at `document`, so its path runs
+   * window then document and a capture listener on window always goes first,
+   * whenever it was added. A window `blur` is dispatched at `window` itself,
+   * where every listener is in the target phase and they run in the order they
+   * were added. Injected at document_start we are first and can swallow it;
+   * injected from a bookmarklet, into a page that wired up its own handler
+   * minutes ago, we are last and cannot.
+   *
+   * True when the page had already loaded by the time we installed, which is
+   * exactly the case where that race is lost.
+   */
+  const installedLate = doc.readyState !== 'loading';
+  let restoringFocus = false;
+
   function onSuppressedEvent(event) {
     if (event.type === 'visibilitychange') onRealVisibilityChange();
     if (!config.active || !config.presence) return;
     if (event.type === 'blur' && event.target !== win) return;
+
+    if (event.type === 'blur' && installedLate && !restoringFocus) {
+      // Whoever was listening before us has already heard it. The next best
+      // thing is to hand focus straight back, so anything that pauses on blur
+      // and resumes on focus ends up running again.
+      restoringFocus = true;
+      setTimeoutReal(() => {
+        restoringFocus = false;
+        try {
+          win.dispatchEvent(new FocusEvent('focus'));
+        } catch (_) {
+          try { win.dispatchEvent(new Event('focus')); } catch (__) { /* ignore */ }
+        }
+      }, 0);
+    }
+
     event.stopImmediatePropagation();
     event.stopPropagation();
   }

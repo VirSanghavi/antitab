@@ -139,10 +139,23 @@ const DOCUMENT_EVENTS = [
 'freeze'
 ];
 const WINDOW_EVENTS = ['blur'];
+const installedLate = doc.readyState !== 'loading';
+let restoringFocus = false;
 function onSuppressedEvent(event) {
 if (event.type === 'visibilitychange') onRealVisibilityChange();
 if (!config.active || !config.presence) return;
 if (event.type === 'blur' && event.target !== win) return;
+if (event.type === 'blur' && installedLate && !restoringFocus) {
+restoringFocus = true;
+setTimeoutReal(() => {
+restoringFocus = false;
+try {
+win.dispatchEvent(new FocusEvent('focus'));
+} catch (_) {
+try { win.dispatchEvent(new Event('focus')); } catch (__) {  }
+}
+}, 0);
+}
 event.stopImmediatePropagation();
 event.stopPropagation();
 }

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Antitab vs the classic tab detector</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; max-width: 720px; }
+  .alert { padding: 8px 12px; border-radius: 6px; margin: 4px 0; font-size: 13px; }
+  .alert-warning { background: #fdf0d5; }
+  .alert-success { background: #e9f3ee; }
+  .alert-info { background: #e6eef6; }
+  pre { background: #f4f5f6; padding: 12px; border-radius: 8px; font-size: 12px; }
+  code { font-family: ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<h1>Antitab vs the classic tab detector</h1>
+<p>The <code>blur</code>/<code>focus</code> tracker from
+<a href="http://stackoverflow.com/questions/1760250/how-to-tell-if-browser-tab-is-active">Stack Overflow question 1760250</a>,
+verbatim, running against real jQuery. Add <code>?antitab=1</code> to load the payload first.</p>
+
+<div id="notify"></div>
+<pre id="report">switch to another tab and back, or call window.__detector.report()</pre>
+
+<!-- The payload loads first, exactly as it would at document_start. -->
+<script>
+  if (new URLSearchParams(location.search).get('antitab') === '1') {
+    document.write('<script src="/src/main/antitab.js"><\/script>');
+  }
+</script>
+<script src="vendor/jquery-3.7.1.min.js"></script>
+
+<script>
+// ============================================================================
+// Verbatim from the Stack Overflow answer, unmodified except for the counters
+// at the bottom of each branch, which are what the test reads.
+// ============================================================================
+
+// code base I started with, from Stack - http://stackoverflow.com/questions/1760250/how-to-tell-if-browser-tab-is-active
+
+/********************
+ * global vars
+ * possible usage:
+ * - keeping track of user visits (back and forth)
+ * - turn off running events/actions until the user returns to this tab
+ ********************/
+
+var visited = 0;
+var $notify = $('#notify');
+
+$(window).on('blur focus', function(e) {
+  var prevType = $(this).data('prevType');
+
+  //  reduce double fire issues
+  if (prevType != e.type) {
+    switch (e.type) {
+      case 'blur':
+        $notify.append('<div class="alert alert-warning">Why are you leaving? (User left this browser tab)</div>');
+
+        console.log('User left this browser tab.');
+        window.__detector.blurs++;
+        break;
+
+      case 'focus':
+        var msg = '<div class="alert alert-success">Welcome, User (now change tabs, then come back.)</div>';
+        if(visited > 0){
+          var addS = visited == 1 ? '' : 's';
+          msg = '<div class="alert alert-info">Welcome back! User has been back to this Browser Tab :: ' + visited + ' time' + addS + '</div>';
+        }
+
+        $notify.append(msg);
+        visited++;
+
+        console.log('User is viewing this browser tab.');
+        window.__detector.focuses++;
+        break;
+    }
+  }
+
+  $(this).data('prevType', e.type);
+});
+
+// ============================================================================
+// Test scaffolding below this line.
+// ============================================================================
+
+window.__detector = {
+  blurs: 0,
+  focuses: 0,
+  antitab: new URLSearchParams(location.search).get('antitab') === '1',
+  get visited() { return visited; },
+  get caught() { return window.__detector.blurs > 0; },
+  report() {
+    const state = {
+      antitab: window.__detector.antitab,
+      payloadPresent: !!window.__antitab,
+      blursSeen: window.__detector.blurs,
+      focusesSeen: window.__detector.focuses,
+      visited,
+      messages: [...document.querySelectorAll('#notify .alert')].map((el) => el.textContent)
+    };
+    document.getElementById('report').textContent = JSON.stringify(state, null, 2);
+    return state;
+  }
+};
+</script>
+</body>
+</html>

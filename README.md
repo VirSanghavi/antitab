@@ -128,6 +128,30 @@ deleted, the listeners removed, and `requestAnimationFrame`, `setTimeout`,
 put back as they were. Timers still pending are handed to the browser rather
 than dropped.
 
+### Why the extension wins a race the bookmark cannot
+
+Both are tested against [the classic blur/focus tab detector][so], with real
+jQuery, in `dev/test/run-detector.mjs`. They do not do equally well, for a
+reason worth knowing:
+
+- A `visibilitychange` is dispatched at `document`, so it travels window then
+  document. A capture listener on `window` therefore runs **first, whenever it
+  was added**. Both versions swallow it.
+- A window `blur` is dispatched at `window` itself. Every listener there is in
+  the target phase, and those run **in the order they were added**. Loaded at
+  `document_start` the extension is first and swallows it. Clicked from a
+  bookmark, on a page that registered its handler minutes ago, Antitab is last
+  and `stopImmediatePropagation` has nobody left to stop.
+
+So a page using window `blur` still learns you left when you use the bookmark.
+What Antitab does instead is hand focus straight back on the next tick, so
+anything that pauses on blur and resumes on focus ends up running again. A
+detector that only logs will still have logged; a player will keep playing.
+This compensation is deliberately off when Antitab loaded first, so the
+extension never invents a focus event nobody asked for.
+
+[so]: http://stackoverflow.com/questions/1760250/how-to-tell-if-browser-tab-is-active
+
 ### Where it cannot help
 
 - **Videos embedded from another site.** The bookmark only reaches the page you
