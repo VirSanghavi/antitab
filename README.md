@@ -169,6 +169,8 @@ docs/                      the installer page, generated, served by GitHub Pages
 ```bash
 node dev/make-icons.mjs          # redraw the PNG icons
 node dev/build-bookmarklet.mjs   # rebuild bookmarklet/ and docs/ from the payload
+node dev/test/check-sources.mjs        # parses, paths resolve, copy rules
+node dev/test/icon-check.mjs           # committed PNGs match the drawing code
 node dev/test/bookmarklet-check.mjs
 node dev/preview/build.mjs       # preview pages for the popup and options UI
 node dev/test/serve.mjs 8733     # then open the spec below
@@ -181,7 +183,9 @@ committed output does not match.
 
 ### Tests
 
-Open `http://127.0.0.1:8733/dev/test/spec.html` and press **Run**. 22 assertions
+`npm install --no-save playwright && node dev/test/run-spec.mjs` runs the whole
+spec headlessly, which is what CI does. Or open
+`http://127.0.0.1:8733/dev/test/spec.html` and press **Run**. 22 assertions
 covering the spoofing, the event blocking, the animation-frame keep-alive, the
 force-resume limits, and a clean teardown.
 

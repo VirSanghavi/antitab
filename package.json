@@ -10,7 +10,8 @@
     "build": "node dev/make-icons.mjs && node dev/build-bookmarklet.mjs",
     "preview": "node dev/preview/build.mjs",
     "serve": "node dev/test/serve.mjs 8733",
-    "check": "node dev/test/check-sources.mjs && node dev/test/bookmarklet-check.mjs"
+    "check": "node dev/test/check-sources.mjs && node dev/test/icon-check.mjs && node dev/test/bookmarklet-check.mjs",
+    "spec": "node dev/test/run-spec.mjs"
   },
   "repository": {
     "type": "git",

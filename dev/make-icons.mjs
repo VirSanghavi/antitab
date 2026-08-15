@@ -10,10 +10,10 @@
 import { deflateSync } from 'node:zlib';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'icons');
-const SIZES = [16, 32, 48, 128];
+export const SIZES = [16, 32, 48, 128];
 const SAMPLES = 4; // supersampling per axis
 
 const TILE = [0x16, 0x18, 0x1c];
@@ -42,7 +42,7 @@ function insideTriangle(x, y, a, b, c) {
   return !(hasNeg && hasPos);
 }
 
-function draw(size) {
+export function draw(size) {
   const radius = size * 0.22;
   // Same proportions as the inline SVG mark used in the popup.
   const a = [size * 0.38, size * 0.31];
@@ -137,9 +137,14 @@ function encodePng(size, pixels) {
   ]);
 }
 
-mkdirSync(OUT_DIR, { recursive: true });
-for (const size of SIZES) {
-  const file = join(OUT_DIR, `icon${size}.png`);
-  writeFileSync(file, encodePng(size, draw(size)));
-  console.log(`wrote icons/icon${size}.png`);
+// Only write when run directly, so the drawing can be imported and verified.
+// zlib output differs between Node versions, which makes the compressed bytes a
+// useless thing to diff; dev/test/icon-check.mjs compares pixels instead.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  mkdirSync(OUT_DIR, { recursive: true });
+  for (const size of SIZES) {
+    const file = join(OUT_DIR, `icon${size}.png`);
+    writeFileSync(file, encodePng(size, draw(size)));
+    console.log(`wrote icons/icon${size}.png`);
+  }
 }

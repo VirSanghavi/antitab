@@ -13,21 +13,22 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Static checks
         run: node dev/test/check-sources.mjs
 
-      - name: Rebuild the generated files
-        run: |
-          node dev/make-icons.mjs
-          node dev/build-bookmarklet.mjs
+      - name: The committed icons must match the source drawing
+        run: node dev/test/icon-check.mjs
+
+      - name: Rebuild the generated text
+        run: node dev/build-bookmarklet.mjs
 
       - name: The committed build must match the source
         run: |
-          if ! git diff --exit-code; then
-            echo "::error::icons/, bookmarklet/ or docs/ is out of date."
-            echo "Run: node dev/make-icons.mjs && node dev/build-bookmarklet.mjs"
+          if ! git diff --exit-code -- bookmarklet docs; then
+            echo "::error::bookmarklet/ or docs/ is out of date."
+            echo "Run: node dev/build-bookmarklet.mjs"
             exit 1
           fi
 
@@ -41,7 +42,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Playwright and a browser
         run: |
