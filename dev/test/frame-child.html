@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>frame child</title></head>
+<body>
+<p>frame child</p>
+<script>
+// A detector registered before anything else can reach this document, which is
+// the situation on any real page.
+window.__seen = { visibility: 0, blur: 0 };
+document.addEventListener('visibilitychange', () => { window.__seen.visibility++; });
+window.addEventListener('blur', () => { window.__seen.blur++; });
+
+// A nested frame, so the walk has to go deeper than one level.
+if (new URLSearchParams(location.search).get('nest') === '1') {
+  const inner = document.createElement('iframe');
+  inner.id = 'nested';
+  inner.srcdoc = '<script>window.__seen={visibility:0,blur:0};'
+    + 'document.addEventListener("visibilitychange",function(){window.__seen.visibility++});'
+    + 'window.addEventListener("blur",function(){window.__seen.blur++});<\/script>';
+  document.body.appendChild(inner);
+}
+</script>
+</body>
+</html>

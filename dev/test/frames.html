@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Antitab frame shapes</title>
+<style>
+  body { font: 14px ui-monospace, Menlo, monospace; margin: 20px; }
+  iframe { width: 240px; height: 60px; border: 1px solid #ccc; margin: 4px; }
+</style>
+</head>
+<body>
+<h1>Frame shapes</h1>
+<p>Every arrangement a real page might use. The cross-origin one is served from
+<code>localhost</code> while this page is on <code>127.0.0.1</code>, which the
+browser treats as a different site.</p>
+
+<!-- 1. plain same-origin frame, with a nested srcdoc frame inside it -->
+<iframe id="same" src="/dev/test/frame-child.html?nest=1"></iframe>
+
+<!-- 2. srcdoc, which inherits this document's origin. Filled in below, because
+     a script tag inside an attribute is a quoting minefield. -->
+<iframe id="srcdoc"></iframe>
+
+<!-- 3. sandboxed but allowed to keep its origin -->
+<iframe id="sandboxed" sandbox="allow-scripts allow-same-origin" src="/dev/test/frame-child.html"></iframe>
+
+<!-- 4. genuinely another site -->
+<iframe id="cross" src="CROSS_ORIGIN/dev/test/frame-child.html"></iframe>
+
+<script>
+  const DETECTOR = 'window.__seen={visibility:0,blur:0};'
+    + 'document.addEventListener("visibilitychange",function(){window.__seen.visibility++});'
+    + 'window.addEventListener("blur",function(){window.__seen.blur++});';
+  document.getElementById('srcdoc').srcdoc =
+    '<scr' + 'ipt>' + DETECTOR + '</scr' + 'ipt>';
+
+  // The cross-origin frame's host is filled in by the runner.
+  const cross = document.getElementById('cross');
+  cross.src = cross.getAttribute('src').replace('CROSS_ORIGIN', window.__crossOrigin || '');
+
+  // 5. a frame that only appears later, the way a lazily mounted player does.
+  window.addLateFrame = () => {
+    const late = document.createElement('iframe');
+    late.id = 'late';
+    late.src = '/dev/test/frame-child.html';
+    document.body.appendChild(late);
+    return new Promise((resolve) => { late.addEventListener('load', resolve); });
+  };
+</script>
+</body>
+</html>

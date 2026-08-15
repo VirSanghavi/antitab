@@ -95,9 +95,16 @@ assertNoRegexLiteral(wrapper, 'src/bookmarklet/wrapper.js');
 const banner = `/* Antitab ${version} — keeps a tab's video playing after you switch away.\n`
   + `   Source: https://github.com/${REPO} — MIT licensed. */\n`;
 
+const strippedPayload = stripComments(payload);
+
+// The payload is inlined as code for this window, and again as a string so the
+// wrapper can put it inside same-origin frames. Inlining it twice is deliberate:
+// running the top window through eval would break on any page whose policy
+// forbids eval, and that is the case that has to keep working.
 const body = [
   'var __antitabWasInstalled = !!window.__antitab;',
-  stripComments(payload),
+  'var __antitabSource = ' + JSON.stringify(strippedPayload) + ';',
+  strippedPayload,
   stripComments(wrapper)
 ].join('\n');
 

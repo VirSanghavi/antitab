@@ -152,15 +152,31 @@ extension never invents a focus event nobody asked for.
 
 [so]: http://stackoverflow.com/questions/1760250/how-to-tell-if-browser-tab-is-active
 
+### Frames
+
+A page is rarely one document. The bookmark starts in the one you clicked on and
+spreads as far as the browser allows, which is further than it sounds:
+
+| Frame | Bookmark | Extension |
+| ----- | -------- | --------- |
+| Same origin | yes | yes |
+| `srcdoc`, which inherits the parent's origin | yes | yes |
+| Nested several levels down | yes | yes |
+| Sandboxed, with `allow-same-origin` | yes | yes |
+| Added to the page after you clicked | yes, an observer catches it | yes |
+| **From another domain** | **no, and it tells you** | yes, once that domain is switched on too |
+
+`dev/test/run-frames.mjs` checks every row against a page built out of exactly
+those shapes.
+
 ### Where it cannot help
 
-- **Anything running inside a frame from another domain.** A site is switched
-  on one domain at a time, and plenty of pages run the part you care about
-  somewhere else. CodePen is the clearest case: the address bar says
-  `codepen.io`, but a pen actually runs on `cdpn.io`, so switching on
-  `codepen.io` alone changes nothing. The popup notices and offers the missing
-  domain with one click. The bookmark cannot do this at all, since it only ever
-  reaches the page you clicked it on.
+- **Anything running inside a frame from another domain.** Plenty of pages run
+  the part you care about somewhere else, and nothing in a page is allowed to
+  touch a frame from another site. CodePen is the clearest case: the address
+  bar says `codepen.io`, but a pen actually runs on `cdpn.io`. The **extension**
+  handles it, offering the missing domain in the popup with one click. The
+  **bookmark** cannot, and says so rather than failing quietly.
 - **Anything enforced on a server.** Some exam, training and time-tracking
   platforms report focus from their own backend on purpose. Nothing running in
   your browser changes that.
