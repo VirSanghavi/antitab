@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Antitab",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Makes a site believe its tab is still open, focused and in use, so nothing pauses, throttles or times out when you switch away.",
   "minimum_chrome_version": "111",
   "permissions": ["storage", "scripting", "activeTab"],

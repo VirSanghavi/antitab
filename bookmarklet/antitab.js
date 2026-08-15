@@ -1,11 +1,11 @@
-/* Antitab 1.1.0 — keeps a tab's video playing after you switch away.
+/* Antitab 1.1.1 — keeps a tab's video playing after you switch away.
    Source: https://github.com/VirSanghavi/antitab — MIT licensed. */
 (function(){
 var __antitabWasInstalled = !!window.__antitab;
 (() => {
 'use strict';
 const NS = '__antitab';
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 const win = window;
 const doc = document;
 if (win[NS]) {
