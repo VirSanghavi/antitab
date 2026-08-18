@@ -28,7 +28,7 @@
   'use strict';
 
   const NS = '__antitab';
-  const VERSION = '1.2.1';
+  const VERSION = '1.2.2';
   const win = window;
   const doc = document;
 

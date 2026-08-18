@@ -97,14 +97,16 @@ const banner = `/* Antitab ${version} — keeps a tab's video playing after you 
 
 const strippedPayload = stripComments(payload);
 
-// The payload is inlined as code for this window, and again as a string so the
-// wrapper can put it inside same-origin frames. Inlining it twice is deliberate:
-// running the top window through eval would break on any page whose policy
-// forbids eval, and that is the case that has to keep working.
+// The payload goes in once, as a named function. This window runs it directly,
+// so the top document never depends on eval and keeps working under a policy
+// that forbids it. Frames get the same source back out via toString, which
+// costs nothing: a second inlined copy doubled the size of the bookmark for no
+// benefit, and a bookmark is a URL somebody has to be able to store and paste.
 const body = [
   'var __antitabWasInstalled = !!window.__antitab;',
-  'var __antitabSource = ' + JSON.stringify(strippedPayload) + ';',
-  strippedPayload,
+  'function __antitabPayload(){' + strippedPayload + '}',
+  '__antitabPayload();',
+  'var __antitabSource = "(" + __antitabPayload.toString() + ")()";',
   stripComments(wrapper)
 ].join('\n');
 

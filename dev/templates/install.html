@@ -133,6 +133,17 @@
   }
   .copy:hover { border-color: var(--ink); background: var(--sunken); }
 
+  .result {
+    margin-top: 14px; padding: 14px 16px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--surface);
+  }
+  .result[data-state="working"] {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+    background: var(--accent-wash);
+  }
+  .result__state { margin: 0; font-weight: 600; font-size: 15px; }
+  .result__detail { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+
   .callout {
     border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
     background: var(--accent-wash); border-radius: 12px; padding: 16px 18px;
@@ -202,6 +213,16 @@
     </li>
   </ol>
 
+  <section id="verify">
+    <h2>Check it worked</h2>
+    <p>With this page open, click your new Antitab bookmark. This box will say
+    what happened.</p>
+    <div class="result" id="result">
+      <p class="result__state" id="result-state">Waiting for you to click the bookmark</p>
+      <p class="result__detail" id="result-detail">Nothing has run on this page yet.</p>
+    </div>
+  </section>
+
   <section>
     <h2>Not working yet?</h2>
 
@@ -226,6 +247,19 @@
         <li><strong>You clicked Antitab before the page finished loading.</strong> Press play first, then click the bookmark.</li>
       </ul>
       <p class="muted">Antitab also cannot help where the pausing happens on the company's servers rather than in the page. Some exam and training platforms work that way on purpose.</p>
+    </details>
+
+    <details>
+      <summary>I am on a school Chromebook and none of this works</summary>
+      <p>Work through these in order. Each one is a different block, and only your
+      administrator can lift the last two.</p>
+      <ul class="plain">
+        <li><strong>The bookmarks bar is missing.</strong> Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd>. If it does not appear, bookmarks are switched off by policy.</li>
+        <li><strong>You cannot add or drag a bookmark at all.</strong> Your administrator has turned off editing bookmarks. There is no way round that from inside Chrome.</li>
+        <li><strong>You can add it, but clicking does nothing anywhere.</strong> Some managed devices block <code>javascript:</code> bookmarks outright.</li>
+        <li><strong>The extension is not an option.</strong> Managed Chromebooks almost always block installing extensions and switch off developer mode, which is exactly why the bookmark exists.</li>
+      </ul>
+      <p class="muted" style="margin-bottom:0">If the box above says Antitab is working but a site still pauses, the block is on that site rather than on your Chromebook, and the answers below apply.</p>
     </details>
 
     <details>
@@ -262,6 +296,35 @@
 </div>
 
 <script>
+  // Watch for the bookmarklet running on this very page, so "it does not work"
+  // can become a specific answer instead of a shrug.
+  (() => {
+    const box = document.getElementById('result');
+    const state = document.getElementById('result-state');
+    const detail = document.getElementById('result-detail');
+    let announced = false;
+
+    setInterval(() => {
+      if (announced || !window.__antitab) return;
+      announced = true;
+
+      const version = window.__antitab.version || 'unknown';
+      const notice = window.__antitabNotice;
+      box.dataset.state = 'working';
+      state.textContent = 'Antitab is working on this page.';
+
+      let text = 'Version ' + version + '. ';
+      if (notice && notice.unreachable) {
+        text += 'It also found ' + notice.unreachable + ' part'
+          + (notice.unreachable === 1 ? '' : 's')
+          + ' of this page coming from another site, which a bookmark cannot reach.';
+      } else {
+        text += 'It reached everything on this page. Do the same on the site you actually want, and switch tabs.';
+      }
+      detail.textContent = text;
+    }, 400);
+  })();
+
   document.getElementById('copy').addEventListener('click', async (event) => {
     const button = event.currentTarget;
     const code = document.querySelector('.grab').getAttribute('href');
